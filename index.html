@@ -9,9 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=7">
+  <link rel="stylesheet" href="styles.css?v=8">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%237c3aed'/><text x='32' y='42' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='24' text-anchor='middle' fill='%23ffffff'>R15</text></svg>">
-  <script src="config.js?v=7"></script>
+  <script src="config.js?v=8"></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -268,11 +268,30 @@
     <div class="sheet__body">
       <ul class="cart-list" id="cart-list"></ul>
       <p class="empty" id="cart-empty">Seu carrinho está vazio.</p>
+
+      <section class="ship" id="ship" aria-labelledby="ship-title" hidden>
+        <div class="ship__head">
+          <h3 class="ship__title" id="ship-title">Calcular frete</h3>
+          <a class="ship__help" href="https://buscacepinter.correios.com.br/app/endereco/index.php" target="_blank" rel="noopener">Não sei meu CEP</a>
+        </div>
+        <form class="ship__form" id="ship-form" novalidate>
+          <label class="visually-hidden" for="ship-cep">CEP de entrega</label>
+          <input class="ship__input" id="ship-cep" name="cep" type="text" inputmode="numeric" autocomplete="postal-code" placeholder="Seu CEP" maxlength="9" enterkeyhint="go" aria-describedby="ship-msg">
+          <button class="btn btn--outline ship__btn" id="ship-btn" type="submit">Calcular</button>
+        </form>
+        <p class="ship__addr" id="ship-addr" hidden></p>
+        <p class="ship__msg" id="ship-msg" role="status" aria-live="polite"></p>
+        <fieldset class="ship__opts" id="ship-opts" hidden>
+          <legend class="visually-hidden">Escolha a entrega</legend>
+          <div id="ship-list"></div>
+        </fieldset>
+      </section>
     </div>
     <footer class="sheet__foot" id="cart-foot">
       <dl class="totals">
         <div><dt>Subtotal</dt><dd id="cart-subtotal">R$ 0,00</dd></div>
-        <div class="totals__pix"><dt>No Pix</dt><dd id="cart-pix">R$ 0,00</dd></div>
+        <div class="totals__ship" id="cart-ship-row" hidden><dt>Frete</dt><dd id="cart-ship">R$ 0,00</dd></div>
+        <div class="totals__pix"><dt id="cart-pix-label">No Pix</dt><dd id="cart-pix">R$ 0,00</dd></div>
       </dl>
       <button class="btn btn--whats btn--lg btn--block" type="button" data-action="checkout">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/></svg>
@@ -299,6 +318,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=7"></script>
+  <script src="app.js?v=8"></script>
 </body>
 </html>
