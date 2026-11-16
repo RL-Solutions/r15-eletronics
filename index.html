@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0b0d">
+  <meta name="description" content="Eletrônicos e acessórios com envio no mesmo dia e desconto no Pix.">
+  <title>Loja</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%23ffb020'/><path d='M36 6 14 36h14l-4 22 26-32H36z' fill='%230b0b0d'/></svg>">
+  <script src="config.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
+
+  <div class="topbar" id="topbar"></div>
+
+  <header class="header" id="topo">
+    <div class="header__inner container">
+      <a class="logo" href="#topo" aria-label="Página inicial">
+        <span class="logo__mark" aria-hidden="true"></span>
+        <span class="logo__text"><strong class="js-brand"></strong><small class="js-tagline"></small></span>
+      </a>
+
+      <nav class="header__nav" aria-label="Principal">
+        <a href="#mais-procurados">Mais procurados</a>
+        <a href="#queima">Queima de estoque</a>
+        <a href="#envio-imediato">Envio imediato</a>
+        <a href="#catalogo">Todos os produtos</a>
+      </nav>
+
+      <div class="header__actions">
+        <button class="icon-btn" type="button" data-action="search" aria-label="Buscar produtos">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        </button>
+        <button class="icon-btn icon-btn--cart" type="button" data-action="cart" aria-label="Abrir carrinho, 0 itens">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6.2"/><circle cx="10" cy="20.5" r="1.3"/><circle cx="17" cy="20.5" r="1.3"/></svg>
+          <span class="badge js-cart-count" aria-hidden="true" hidden>0</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="marquee" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
+
+  <main id="conteudo" tabindex="-1">
+    <!-- HERO -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__glow" aria-hidden="true"></div>
+      <div class="container hero__inner">
+        <p class="hero__kicker js-hero-kicker"></p>
+        <h1 class="hero__title" id="hero-title"></h1>
+        <p class="hero__deal js-hero-deal"></p>
+        <p class="hero__text js-hero-text"></p>
+
+        <div class="countdown" id="countdown" role="timer" aria-live="off">
+          <p class="countdown__label">A Black Friday começa em</p>
+          <div class="countdown__grid">
+            <div><span data-unit="d">00</span><small>dias</small></div>
+            <div><span data-unit="h">00</span><small>hrs</small></div>
+            <div><span data-unit="m">00</span><small>min</small></div>
+            <div><span data-unit="s">00</span><small>seg</small></div>
+          </div>
+        </div>
+
+        <a class="btn btn--primary btn--lg" href="#queima">Ver ofertas <span aria-hidden="true">→</span></a>
+        <p class="hero__note">*Ofertas, preços e condições podem mudar sem aviso prévio.</p>
+      </div>
+    </section>
+
+    <!-- SELOS -->
+    <section class="container trust" aria-label="Vantagens">
+      <ul class="trust__list">
+        <li><span class="trust__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg></span><div><strong>Site seguro</strong><span>Compre com tranquilidade</span></div></li>
+        <li><span class="trust__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg></span><div><strong>Frete nacional</strong><span>Enviamos para todo o Brasil</span></div></li>
+        <li><span class="trust__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/></svg></span><div><strong>Pagamento</strong><span>Pix, crédito e débito</span></div></li>
+        <li><span class="trust__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 12 12 20l-8-8V4h8z"/><circle cx="8.5" cy="8.5" r="1.3"/></svg></span><div><strong>Desconto no Pix</strong><span class="js-pix-label"></span></div></li>
+      </ul>
+    </section>
+
+    <!-- STATUS DO ESTOQUE -->
+    <div class="container"><p class="stock-status" id="stock-status" role="status"></p></div>
+
+    <!-- MAIS PROCURADOS -->
+    <section class="section" id="mais-procurados" aria-labelledby="t-mais">
+      <div class="container section__head">
+        <h2 id="t-mais">Os mais procurados</h2>
+        <a class="section__link" href="#catalogo">Ver tudo</a>
+      </div>
+      <div class="rail" data-list="featured" role="list"></div>
+    </section>
+
+    <!-- QUEIMA DE ESTOQUE -->
+    <section class="section section--flash" id="queima" aria-labelledby="t-queima">
+      <div class="container section__head">
+        <div>
+          <p class="eyebrow">Só hoje</p>
+          <h2 id="t-queima">Queima de estoque</h2>
+          <p class="section__sub">Últimas unidades com preços especiais. Corra antes que acabe!</p>
+        </div>
+      </div>
+      <div class="rail" data-list="clearance" role="list"></div>
+    </section>
+
+    <!-- ENVIO IMEDIATO -->
+    <section class="section" id="envio-imediato" aria-labelledby="t-envio">
+      <div class="container section__head">
+        <h2 id="t-envio">Envio imediato</h2>
+        <a class="section__link" href="#catalogo">Ver tudo</a>
+      </div>
+      <div class="rail" data-list="ships" role="list"></div>
+    </section>
+
+    <!-- CATÁLOGO -->
+    <section class="section" id="catalogo" aria-labelledby="t-cat">
+      <div class="container">
+        <div class="section__head section__head--flat"><h2 id="t-cat">Todos os produtos</h2></div>
+
+        <div class="search">
+          <label class="visually-hidden" for="search-input">Buscar produtos</label>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="search-input" type="search" placeholder="Buscar fone, carregador, cabo…" autocomplete="off" enterkeyhint="search">
+        </div>
+
+        <div class="chips" id="chips" role="group" aria-label="Filtrar por categoria"></div>
+        <p class="visually-hidden" id="results-count" role="status" aria-live="polite"></p>
+        <div class="grid" data-list="all" role="list"></div>
+        <p class="empty" id="empty" hidden>Nenhum produto encontrado.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div>
+        <p class="footer__brand js-brand"></p>
+        <p class="footer__muted js-tagline"></p>
+      </div>
+      <ul class="footer__links" id="footer-links"></ul>
+      <p class="footer__muted">© <span id="year"></span> <span class="js-brand"></span>. Todos os direitos reservados.</p>
+    </div>
+  </footer>
+
+  <!-- WhatsApp flutuante -->
+  <a class="wa-float" id="wa-float" target="_blank" rel="noopener" aria-label="Falar no WhatsApp">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3zm0 23.6a10.6 10.6 0 0 1-5.4-1.5l-.4-.2-3.9 1 1-3.8-.2-.4A10.6 10.6 0 1 1 16 26.6zm5.8-7.9c-.3-.2-1.9-.9-2.2-1s-.5-.2-.7.2-.8 1-1 1.2-.4.2-.7 0a8.7 8.7 0 0 1-4.3-3.8c-.3-.6.3-.5.9-1.7.1-.2 0-.4 0-.5l-1-2.4c-.3-.6-.5-.5-.7-.5h-.6a1.2 1.2 0 0 0-.9.4 3.7 3.7 0 0 0-1.1 2.7 6.4 6.4 0 0 0 1.3 3.4 14.7 14.7 0 0 0 5.6 5c2.1.9 2.9 1 4 .8a3.4 3.4 0 0 0 2.2-1.6 2.8 2.8 0 0 0 .2-1.6c0-.2-.3-.3-.6-.4z"/></svg>
+  </a>
+
+  <!-- Navegação inferior (celular) -->
+  <nav class="bottom-nav" aria-label="Atalhos">
+    <a href="#topo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 11 9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg><span>Início</span></a>
+    <a href="#queima"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2s5 4.5 5 10a5 5 0 0 1-10 0c0-2 1-3.5 1-3.5S9 11 10.5 11C10.5 7 12 2 12 2z"/></svg><span>Ofertas</span></a>
+    <button type="button" data-action="search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Buscar</span></button>
+    <button type="button" data-action="cart" aria-label="Carrinho, 0 itens" class="bottom-nav__cart"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6.2"/><circle cx="10" cy="20.5" r="1.3"/><circle cx="17" cy="20.5" r="1.3"/></svg><span>Carrinho</span><b class="badge js-cart-count" aria-hidden="true" hidden>0</b></button>
+  </nav>
+
+  <!-- Carrinho (bottom sheet) -->
+  <dialog class="sheet" id="cart" aria-labelledby="cart-title">
+    <div class="sheet__handle" aria-hidden="true"></div>
+    <header class="sheet__head">
+      <h2 id="cart-title">Seu carrinho</h2>
+      <button class="icon-btn" type="button" data-action="close-cart" aria-label="Fechar carrinho">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
+      </button>
+    </header>
+    <div class="sheet__body">
+      <ul class="cart-list" id="cart-list"></ul>
+      <p class="empty" id="cart-empty">Seu carrinho está vazio.</p>
+    </div>
+    <footer class="sheet__foot" id="cart-foot">
+      <dl class="totals">
+        <div><dt>Subtotal</dt><dd id="cart-subtotal">R$ 0,00</dd></div>
+        <div class="totals__pix"><dt>No Pix</dt><dd id="cart-pix">R$ 0,00</dd></div>
+      </dl>
+      <button class="btn btn--whats btn--lg btn--block" type="button" data-action="checkout">
+        <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/></svg>
+        Finalizar pelo WhatsApp
+      </button>
+      <p class="sheet__note">Você confirma o pedido, o frete e o pagamento com a nossa equipe no WhatsApp.</p>
+    </footer>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
