@@ -86,18 +86,22 @@ begin
 end $$;
 
 -- 5) Produtos de exemplo (apague ou edite à vontade) --------------------
-insert into public.products (name, variant, brand, category, price, sale_price, stock, featured, clearance, ships_today, sort_order) values
-  ('Fone Bluetooth Pro ANC',        'Preto',        'Sonik',   'Áudio',         249.90, 199.90, 14, true,  false, true,  1),
-  ('Caixa de Som Boom Mini',         'Azul',         'Sonik',   'Áudio',         189.90, 159.90,  6, true,  false, true,  2),
-  ('Carregador Turbo 65W GaN',       'USB-C x2',     'Voltera', 'Carregadores',  159.90, 129.90, 22, true,  false, true,  3),
-  ('Power Bank 20.000mAh',           'Grafite',      'Voltera', 'Carregadores',  199.90, 169.90,  9, true,  false, true,  4),
-  ('Smartwatch Fit S3',              'Preto',        'Pulso',   'Wearables',     329.90, 279.90,  4, true,  false, false, 5),
-  ('Cabo USB-C Trançado 2m',         '100W',         'Voltera', 'Cabos',          49.90,  39.90, 40, true,  false, true,  6),
-  ('Ring Light 10" com Tripé',       'Branco',       'Lumo',    'Acessórios',    139.90,  null, 12, true,  false, true,  7),
-  ('Teclado Mecânico Compacto',      'Switch Red',   'Kraft',   'Gamer',         299.90, 259.90,  7, true,  false, false, 8),
-  ('Fone TWS Air Lite',              'Branco',       'Sonik',   'Áudio',         129.90,  99.90,  1, false, true,  true,  9),
-  ('Mouse Gamer RGB 12.000 DPI',     'Preto',        'Kraft',   'Gamer',         149.90, 119.90,  2, false, true,  true, 10),
-  ('Suporte Veicular Magnético',     'MagSafe',      'Lumo',    'Acessórios',     89.90,  69.90,  1, false, true,  true, 11),
-  ('Hub USB-C 7 em 1',               'HDMI 4K',      'Voltera', 'Acessórios',    219.90, 179.90,  2, false, true,  true, 12),
-  ('Película Hydrogel Premium',      'Universal',    'Lumo',    'Acessórios',     39.90,  null, 55, false, false, true, 13),
-  ('Controle Bluetooth Gamepad',     'Preto',        'Kraft',   'Gamer',         179.90, 149.90,  0, false, false, true, 14);
+--    Só acessórios de tabacaria. Produtos de tabaco não podem ser vendidos
+--    por via postal (Lei 9.294/96) e cigarros eletrônicos são proibidos
+--    no Brasil (Anvisa, RDC 855/2024).
+insert into public.products (name, variant, category, price, sale_price, stock, featured, clearance, ships_today, sort_order) values
+  ('Seda King Size Slim',           'Livreto com 33 folhas', 'Sedas',          7.90,   6.50, 120, true,  false, true,   1),
+  ('Seda Brown King Size',          'Sem branqueamento',     'Sedas',          8.90,   null,  85, true,  false, true,   2),
+  ('Piteira de Vidro Reutilizável', '6 mm',                  'Piteiras',      24.90,  19.90,  18, true,  false, true,   3),
+  ('Bloco de Piteiras de Papel',    'Extra longa',           'Piteiras',       6.90,   5.90,  64, true,  false, true,   4),
+  ('Isqueiro Recarregável',         'Preto fosco',           'Isqueiros',     14.90,  12.90,  40, true,  false, true,   5),
+  ('Isqueiro Maçarico Jet',         'Chama azul',            'Isqueiros',     69.90,  54.90,   5, true,  false, false,  6),
+  ('Bag Anti-Odor Média',           'Roxa, com zíper',       'Bags',          89.90,  69.90,  12, true,  false, true,   7),
+  ('Case Rígido com Divisórias',    'Preto',                 'Cases',         59.90,  49.90,   9, true,  false, true,   8),
+  ('Bag Impermeável Pequena',       'Preta',                 'Bags',          45.00,  34.90,   1, false, true,  true,   9),
+  ('Dichavador de Metal 4 Partes',  'Grafite, 50 mm',        'Dichavadores',  79.90,  59.90,   2, false, true,  true,  10),
+  ('Case Porta-Sedas',              'Couro sintético',       'Cases',         39.90,  29.90,   1, false, true,  true,  11),
+  ('Piteira de Vidro Colorida',     '8 mm, roxa',            'Piteiras',      29.90,  22.90,   2, false, true,  true,  12),
+  ('Bandeja de Metal Média',        '27 × 16 cm',            'Acessórios',    34.90,   null,  22, false, false, true,  13),
+  ('Cinzeiro de Silicone',          'Roxo',                  'Acessórios',    24.90,  19.90,  15, false, false, true,  14),
+  ('Bag Grande com Cadeado',        'Preta',                 'Bags',         129.90, 109.90,   0, false, false, true,  15);
