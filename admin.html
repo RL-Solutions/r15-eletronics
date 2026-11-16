@@ -8,9 +8,10 @@
   <title>Estoque | Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <style>
+    :root { --card: var(--surface); --card-2: var(--surface-2); --line: var(--hairline); --bg: var(--canvas); --radius: var(--r-lg); --danger: var(--down); }
     body { padding-bottom: 24px; }
     .admin { padding-block: 20px 40px; display: grid; gap: 16px; }
     .panel { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; }
@@ -51,7 +52,7 @@
         <span class="logo__text"><strong class="js-brand"></strong><small>Painel de estoque</small></span>
       </a>
       <div class="header__actions">
-        <button class="btn" type="button" id="logout" hidden style="background:var(--card)">Sair</button>
+        <button class="btn btn--secondary" type="button" id="logout" hidden>Sair</button>
       </div>
     </div>
   </header>
@@ -135,7 +136,7 @@
         <li class="row${p.stock <= 0 ? " is-out" : p.stock <= LOW ? " is-low" : ""}" data-id="${p.id}">
           <div>
             <p class="row__name">${esc(p.name)}</p>
-            <p class="row__meta">${esc([p.variant, p.brand, p.category].filter(Boolean).join(" · "))}${p.active ? "" : " · oculto"}</p>
+            <p class="row__meta">${esc([p.variant, p.brand, p.category].filter(Boolean).join(", "))}${p.active ? "" : " (oculto)"}</p>
           </div>
           <div class="row__ctrl">
             <button type="button" data-delta="-1" aria-label="Tirar 1 unidade de ${esc(p.name)}">−</button>
