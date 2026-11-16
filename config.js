@@ -19,12 +19,20 @@ window.STORE_CONFIG = {
   // Promoções -----------------------------------------------------------
   pixDiscount: 0.035,                 // 3,5% de desconto no Pix
   topBarText: "10% off na primeira compra com o cupom BEMVINDO",
-  marquee: ["Mês da Black", "Envio no mesmo dia", "Frete para todo o Brasil", "Desconto no Pix", "Venda só para maiores de 18 anos"],
+  marquee: ["Mês da Black", "Queima de estoque", "Envio no mesmo dia", "Frete para todo o Brasil", "Desconto no Pix", "Só para maiores de 18"],
   countdownTo: "2026-11-27T00:00:00-03:00",   // início da Black Friday
-  heroTitle: ["Pré", "Black"],
-  heroDeal: "Até 25% off",
-  heroText: "Preço de Black antes da Black em sedas, isqueiros, bags e cases selecionados.",
-  lowStockThreshold: 3,               // "Restam X unidades" quando estoque ≤ este valor
+
+  // Banner principal
+  heroKicker: "Novembro é mês da Black",
+  heroTitle: ["Pré", "Black"],                // a 2ª palavra fica roxa
+  heroDeal: { pre: "Até", value: "25%", post: "off" },
+  heroText: "Preço de Black antes da Black em",
+  heroTextStrong: "sedas, isqueiros e bags selecionados.",
+
+  // Queima de estoque
+  flashKicker: "Só hoje",                     // selo acima do título (deixe "" para esconder)
+
+  lowStockThreshold: 3,              // "Restam X unidades" quando estoque ≤ este valor
 
   // Supabase ------------------------------------------------------------
   // Supabase Dashboard > Project Settings > API
