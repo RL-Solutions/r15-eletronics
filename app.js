@@ -8,6 +8,8 @@
   const SUPABASE_SDK = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
   const CART_KEY = "loja.cart.v2";
   const CEP_KEY = "loja.cep.v1";
+  const ORDER_KEY = "loja.order.v1";
+  const MP_SDK = "https://sdk.mercadopago.com/js/v2";
 
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -20,7 +22,9 @@
     live: false,
     status: "ready",   // "loading" | "ready" | "error"
     // frete: "idle" | "loading" | "ready" | "error"
-    ship: { status: "idle", cep: "", address: null, options: [], selected: null, sig: "", msg: "" },
+    ship: { status: "idle", cep: "", address: null, options: [], selected: null, sig: "", msg: "", quoteId: null },
+    // pagamento: etapa do painel e pedido em andamento
+    pay: { step: "cart", order: null, token: null, result: "", busy: false, resumed: false },
   };
 
   // ---------------------------------------------------------------- utils
@@ -273,6 +277,14 @@
     if (ship) $("#cart-ship").textContent = brl(ship.price);
     $("#cart-pix-label").textContent = ship ? "Total no Pix" : "No Pix";
     $("#cart-pix").textContent = brl(pixPrice(subtotal) + (ship ? ship.price : 0));
+
+    // Com Mercado Pago configurado, paga no site; senão, segue pelo WhatsApp
+    const pay = payOn();
+    $("#pay-start").hidden = !pay;
+    $("#wa-checkout").hidden = pay;
+    $("#cart-note").textContent = pay
+      ? "Pix ou cartão em até 12x, com pagamento seguro pelo Mercado Pago."
+      : "Você confirma o pedido, o frete e o pagamento com a nossa equipe no WhatsApp.";
   }
 
   // ---------------------------------------------------------------- frete
@@ -361,7 +373,7 @@
       const options = data.options;
       try { localStorage.setItem(CEP_KEY, cep); } catch { /* modo privado */ }
       Object.assign(s, {
-        status: "ready", address: data.address || null, options, sig: cartSig(entries),
+        status: "ready", address: data.address || null, options, sig: cartSig(entries), quoteId: data.quote_id || null,
         selected: options.length ? options[0].id : null, // começa pela mais barata
         msg: options.length ? "" : "Não há entrega para esse CEP pelo site. Combine o frete no WhatsApp.",
       });
@@ -392,6 +404,446 @@
     else state.cart[id] = Math.min(qty, p.stock);
     saveCart();
     render();
+  }
+
+  // ---------------------------------------------------------------- pagamento (Mercado Pago)
+  const payOn = () => freightOn() && !!CFG.mercadoPagoPublicKey;
+  const onlyDigits = (v) => String(v || "").replace(/\D/g, "");
+  const cartEntries = () => Object.entries(state.cart).map(([id, qty]) => ({ p: byId(id), qty })).filter((e) => e.p);
+  const addrText = (a) => (a ? [a.street, a.district, a.city && `${a.city}/${a.uf}`].filter(Boolean).join(", ") : "");
+
+  const maskPhone = (v) => {
+    const d = onlyDigits(v).slice(0, 11);
+    if (d.length <= 2) return d.length ? `(${d}` : "";
+    const rest = d.slice(2);
+    const split = d.length > 10 ? 5 : 4;
+    return `(${d.slice(0, 2)}) ${rest.slice(0, split)}${rest.length > split ? `-${rest.slice(split)}` : ""}`;
+  };
+  const maskCpf = (v) => {
+    const d = onlyDigits(v).slice(0, 11);
+    return d.replace(/^(\d{3})(\d)/, "$1.$2").replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3").replace(/\.(\d{3})(\d{1,2})$/, ".$1-$2");
+  };
+  function validCpf(v) {
+    const c = onlyDigits(v);
+    if (c.length !== 11 || /^(\d)\1{10}$/.test(c)) return false;
+    const dv = (n) => { let s = 0; for (let i = 0; i < n; i++) s += Number(c[i]) * (n + 1 - i); const r = (s * 10) % 11; return r === 10 ? 0 : r; };
+    return dv(9) === Number(c[9]) && dv(10) === Number(c[10]);
+  }
+
+  const STEP_TITLES = { cart: "Seu carrinho", checkout: "Finalizar compra", pix: "Pague com Pix", card: "Pague com cartão" };
+
+  function showStep(step, title) {
+    if (state.pay.step === "pix" && step !== "pix") stopPoll();
+    if (state.pay.step === "card" && step !== "card") unmountBrick();
+    state.pay.step = step;
+    $$("#cart [data-step]").forEach((el) => { el.hidden = el.dataset.step !== step; });
+    $("#cart-title").textContent = title || STEP_TITLES[step] || "";
+    $("#sheet-back").hidden = !["checkout", "pix", "card"].includes(step);
+    if ($("#cart").open) $("#cart-title").focus({ preventScroll: true });
+  }
+
+  async function api(body) {
+    try {
+      const res = await fetch(`${CFG.supabaseUrl.replace(/\/+$/, "")}/functions/v1/${CFG.paymentFunction || "pagamento"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.supabaseAnonKey, Authorization: `Bearer ${CFG.supabaseAnonKey}` },
+        body: JSON.stringify(body),
+      });
+      return { ok: res.ok, status: res.status, body: await res.json().catch(() => ({})) };
+    } catch (err) {
+      console.error("Pagamento:", err);
+      return { ok: false, status: 0, body: {} };
+    }
+  }
+
+  function saveOrder() {
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify({ id: state.pay.order.id, token: state.pay.token })); } catch { /* modo privado */ }
+  }
+  function forgetOrder() {
+    try { localStorage.removeItem(ORDER_KEY); } catch { /* modo privado */ }
+  }
+
+  // Mensagem do WhatsApp já com o número do pedido
+  function orderWhatsapp(kind) {
+    const o = state.pay.order;
+    const brand = CFG.brandName || "loja";
+    const how = o.method === "pix" ? "Pix" : "cartão";
+    const text = {
+      paid: `Olá! Fiz o pedido ${o.code} no site da ${brand} e o pagamento foi aprovado (${how}, ${brl(o.total)}). Quero falar sobre o meu pedido.`,
+      pending: `Olá! Tenho uma dúvida sobre o pedido ${o.code} no site da ${brand} (${how}, ${brl(o.total)}, ainda não pago).`,
+      review: `Olá! O pagamento do pedido ${o.code} no site da ${brand} está em análise (${how}, ${brl(o.total)}). Pode me ajudar?`,
+      expired: `Olá! O Pix do pedido ${o.code} no site da ${brand} venceu antes de eu pagar. Pode me ajudar?`,
+    }[kind];
+    const href = `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(text)}`;
+    $$("#cart .js-order-wa").forEach((a) => { a.href = href; });
+  }
+
+  function fillOrderInfo() {
+    const o = state.pay.order;
+    $$("#cart .js-order-code").forEach((e) => { e.textContent = o.code; });
+    $$("#cart .js-order-total").forEach((e) => { e.textContent = brl(o.total); });
+  }
+
+  // Etapa 2: dados do cliente ------------------------------------------
+  function startPayment() {
+    const entries = cartEntries();
+    const ship = selectedShip();
+    if (!entries.length || !ship) showStep("cart");
+    if (!entries.length) return;
+    if (!ship) {
+      if (state.ship.status === "ready") state.ship.msg = "Escolha a entrega para continuar.";
+      else Object.assign(state.ship, { status: "error", msg: "Calcule o frete e escolha a entrega para continuar." });
+      renderCart();
+      $("#ship-cep").focus();
+      $("#ship").scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+    const subtotal = entries.reduce((s, { p, qty }) => s + finalPrice(p) * qty, 0);
+    $("#pay-ship").textContent = `${entries.reduce((n, e) => n + e.qty, 0)} ${cartCount() === 1 ? "item" : "itens"} · ${shipName(ship)} · ${etaText(ship).toLowerCase()}`;
+    $("#pay-addr").textContent = `${addrText(state.ship.address)} · CEP ${fmtCep(state.ship.cep)}`;
+    $("#price-pix").textContent = brl(pixPrice(subtotal) + ship.price);
+    $("#price-card").textContent = brl(subtotal + ship.price);
+    const pct = ((CFG.pixDiscount || 0) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 });
+    $(".js-pix-hint").textContent = CFG.pixDiscount ? `${pct}% de desconto, aprovação na hora` : "Aprovação na hora";
+    $("#checkout-alert").hidden = true;
+    updateSubmitLabel();
+    showStep("checkout");
+    $("#checkout-form .sheet__body").scrollTop = 0;
+  }
+
+  function updateSubmitLabel() {
+    const method = $("#checkout-form").elements.method.value;
+    $("#checkout-submit").textContent = method === "pix" ? `Gerar Pix de ${$("#price-pix").textContent}` : "Continuar para o cartão";
+  }
+
+  function readForm() {
+    const f = $("#checkout-form").elements;
+    return {
+      method: f.method.value,
+      age: f.age.checked,
+      customer: {
+        name: f.name.value.trim().replace(/\s+/g, " "), email: f.email.value.trim(), phone: f.phone.value,
+        cpf: f.cpf.value, number: f.number.value.trim(), complement: f.complement.value.trim(),
+      },
+    };
+  }
+
+  function markInvalid(fields) {
+    const all = ["name", "email", "phone", "cpf", "number", "age"];
+    for (const k of all) {
+      const input = k === "age" ? $("#f-age") : $(`#f-${k}`);
+      const bad = fields.includes(k);
+      input.setAttribute("aria-invalid", String(bad));
+      (k === "age" ? $("#e-age") : input.closest(".field")).classList.toggle("is-invalid", bad);
+    }
+    const first = all.find((k) => fields.includes(k));
+    if (first) (first === "age" ? $("#f-age") : $(`#f-${first}`)).focus();
+  }
+
+  function validate({ customer: c, age }) {
+    const bad = [];
+    if (c.name.length < 5 || !c.name.includes(" ")) bad.push("name");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(c.email)) bad.push("email");
+    const ph = onlyDigits(c.phone);
+    if (ph.length < 10 || ph.length > 11) bad.push("phone");
+    if (!validCpf(c.cpf)) bad.push("cpf");
+    if (!c.number) bad.push("number");
+    if (!age) bad.push("age");
+    return bad;
+  }
+
+  function setBusy(busy, label) {
+    state.pay.busy = busy;
+    const b = $("#checkout-submit");
+    b.disabled = busy;
+    b.setAttribute("aria-busy", String(busy));
+    if (busy) b.textContent = label; else updateSubmitLabel();
+  }
+
+  function formAlert(msg) {
+    const el = $("#checkout-alert");
+    el.textContent = msg;
+    el.hidden = !msg;
+  }
+
+  async function submitCheckout(e) {
+    e.preventDefault();
+    if (state.pay.busy) return;
+    const form = readForm();
+    const bad = validate(form);
+    markInvalid(bad);
+    if (bad.length) return;
+
+    const ship = selectedShip();
+    if (!ship) { showStep("cart"); startPayment(); return; }
+    formAlert("");
+    setBusy(true, form.method === "pix" ? "Gerando o Pix…" : "Criando o pedido…");
+    const res = await api({
+      action: "order", method: form.method, age_confirmed: true, customer: form.customer,
+      items: cartEntries().map(({ p, qty }) => ({ id: p.id, qty })),
+      quote_id: state.ship.quoteId, ship_id: ship.id,
+    });
+    setBusy(false);
+
+    if (!res.ok) {
+      const b = res.body || {};
+      if (res.status === 422 && Array.isArray(b.fields)) { markInvalid(b.fields); return; }
+      if (res.status === 409 && b.code === "stock") {
+        if (state.live) { await loadProducts().catch(() => {}); clampCart(); }
+        Object.assign(state.ship, { status: "idle", options: [], selected: null, msg: "" });
+        render();
+        showStep("cart");
+        toast("O estoque de alguns itens mudou. Confira o carrinho.");
+        return;
+      }
+      if (res.status === 409 && b.code === "quote") {
+        Object.assign(state.ship, { status: "idle", options: [], selected: null, msg: "O frete precisa ser calculado de novo." });
+        renderCart();
+        showStep("cart");
+        $("#ship-cep").focus();
+        return;
+      }
+      formAlert(b.error || "Não foi possível criar o pedido agora. Confira sua conexão e tente de novo.");
+      return;
+    }
+
+    state.pay.order = res.body.order;
+    state.pay.token = res.body.token;
+    state.pay.email = form.customer.email;
+    saveOrder();
+    if (state.pay.order.method === "pix") showPix(); else showCard();
+  }
+
+  // Etapa 3a: Pix ------------------------------------------------------
+  let pollTimer = null;
+  let clockTimer = null;
+
+  function showPix() {
+    const o = state.pay.order;
+    fillOrderInfo();
+    orderWhatsapp("pending");
+    const img = $("#pix-qr");
+    img.hidden = !o.pix?.qr_base64;
+    if (o.pix?.qr_base64) img.src = `data:image/png;base64,${o.pix.qr_base64}`;
+    $("#pix-code").value = o.pix?.qr_code || "";
+    $("#pix-copy").textContent = "Copiar código Pix";
+    showStep("pix");
+    startPoll();
+  }
+
+  function pixClock() {
+    const exp = Date.parse(state.pay.order?.pix?.expires_at || "");
+    const el = $("#pix-status");
+    if (!exp) { el.textContent = "Aguardando o pagamento…"; return; }
+    const left = Math.max(0, Math.round((exp - Date.now()) / 1000));
+    if (left === 0) { el.textContent = "O código venceu. Conferindo o pagamento…"; return; }
+    const mm = String(Math.floor(left / 60)).padStart(2, "0");
+    const ss = String(left % 60).padStart(2, "0");
+    el.textContent = `Aguardando o pagamento. O código vence em ${mm}:${ss}.`;
+  }
+
+  function startPoll() {
+    stopPoll();
+    pixClock();
+    clockTimer = setInterval(pixClock, 1000);
+    const tick = async () => {
+      const res = await api({ action: "status", id: state.pay.order.id, token: state.pay.token });
+      if (state.pay.step !== "pix") return;
+      if (res.ok) {
+        state.pay.order = { ...state.pay.order, ...res.body.order, pix: res.body.order.pix || state.pay.order.pix };
+        if (applyResult(res.body.order)) return;
+      }
+      pollTimer = setTimeout(tick, document.hidden ? 15000 : 4000);
+    };
+    pollTimer = setTimeout(tick, 4000);
+  }
+  function stopPoll() {
+    clearTimeout(pollTimer); clearInterval(clockTimer);
+    pollTimer = clockTimer = null;
+  }
+
+  async function copyPix() {
+    const code = $("#pix-code").value;
+    try { await navigator.clipboard.writeText(code); } catch {
+      $("#pix-code").select(); document.execCommand("copy");
+    }
+    $("#pix-copy").textContent = "Código copiado";
+    toast("Código Pix copiado. Cole no app do seu banco.");
+    setTimeout(() => { if ($("#pix-copy")) $("#pix-copy").textContent = "Copiar código Pix"; }, 2500);
+  }
+
+  // Etapa 3b: cartão (Card Payment Brick do Mercado Pago) --------------
+  let brick = null;
+
+  async function showCard() {
+    fillOrderInfo();
+    orderWhatsapp("pending");
+    $("#card-alert").hidden = true;
+    $("#card-brick").innerHTML = '<p class="pay__loading">Carregando o formulário seguro…</p>';
+    showStep("card");
+    try {
+      if (!window.MercadoPago) await loadScript(MP_SDK);
+      const mp = new window.MercadoPago(CFG.mercadoPagoPublicKey, { locale: "pt-BR" });
+      $("#card-brick").innerHTML = "";
+      brick = await mp.bricks().create("cardPayment", "card-brick", {
+        initialization: { amount: state.pay.order.total, payer: { email: state.pay.email || "" } },
+        customization: {
+          visual: { style: { theme: "dark", customVariables: { baseColor: "#7c3aed", formBackgroundColor: "#17191e", inputBackgroundColor: "#0c0d10" } } },
+          paymentMethods: { maxInstallments: CFG.maxInstallments || 12 },
+        },
+        callbacks: {
+          onReady: () => {},
+          onSubmit: (formData) => payWithCard(formData),
+          onError: (err) => console.error("Mercado Pago:", err),
+        },
+      });
+    } catch (err) {
+      console.error("Mercado Pago:", err);
+      $("#card-brick").innerHTML = "";
+      cardAlert("Não foi possível carregar o pagamento com cartão. Recarregue a página ou pague com Pix.");
+    }
+  }
+
+  function unmountBrick() {
+    if (brick) { try { brick.unmount(); } catch { /* já desmontado */ } }
+    brick = null;
+  }
+
+  function cardAlert(msg) {
+    const el = $("#card-alert");
+    el.textContent = msg;
+    el.hidden = !msg;
+    if (msg) el.scrollIntoView({ block: "nearest" });
+  }
+
+  const CARD_ERRORS = {
+    cc_rejected_bad_filled_card_number: "Confira o número do cartão.",
+    cc_rejected_bad_filled_date: "Confira a data de validade.",
+    cc_rejected_bad_filled_security_code: "Confira o código de segurança (CVV).",
+    cc_rejected_bad_filled_other: "Confira os dados do cartão.",
+    cc_rejected_insufficient_amount: "O cartão não tem limite suficiente. Tente outro cartão ou pague com Pix.",
+    cc_rejected_call_for_authorize: "O banco pediu autorização. Ligue para o banco e tente de novo, ou use outro cartão.",
+    cc_rejected_card_disabled: "O cartão está bloqueado. Fale com o banco ou use outro cartão.",
+    cc_rejected_duplicated_payment: "Você já fez um pagamento com esse valor. Confira antes de tentar de novo.",
+    cc_rejected_high_risk: "O pagamento foi recusado por segurança. Tente outro cartão ou pague com Pix.",
+    cc_rejected_max_attempts: "Você atingiu o limite de tentativas. Use outro cartão ou pague com Pix.",
+  };
+
+  async function payWithCard(formData) {
+    cardAlert("");
+    const res = await api({ action: "card", id: state.pay.order.id, token: state.pay.token, card: formData });
+    if (res.ok) {
+      state.pay.order = res.body.order;
+      if (applyResult(res.body.order, res.body.payment)) return;
+      const detail = res.body.payment?.detail;
+      cardAlert(CARD_ERRORS[detail] || "O pagamento foi recusado. Confira os dados ou tente outro cartão.");
+      throw new Error(detail || "rejected");   // o formulário volta a ficar editável
+    }
+    if (res.status === 409 && res.body.order) {
+      state.pay.order = res.body.order;
+      if (applyResult(res.body.order)) return;
+    }
+    cardAlert(res.status === 402 ? (res.body.error || "Pagamento recusado.") : "Não foi possível concluir agora. Tente de novo em instantes.");
+    throw new Error("card");
+  }
+
+  // Etapa 4: resultado -------------------------------------------------
+  // Devolve true quando o pedido saiu de "aguardando pagamento"
+  function applyResult(order, payment) {
+    if (order.status === "paid" || order.status === "needs_review") { showDone("paid"); return true; }
+    if (order.status === "expired" || order.status === "cancelled") { showDone("expired"); return true; }
+    const st = payment?.status || order.payment_status;
+    if (order.method === "card" && (st === "in_process" || st === "pending" || st === "authorized")) { showDone("review"); return true; }
+    return false;
+  }
+
+  const DONE = {
+    paid: {
+      title: "Pagamento aprovado", icon: '<svg viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+      text: "Recebemos seu pagamento. Agora é com a gente: vamos separar o pedido e avisar você pelo WhatsApp quando ele sair para entrega.",
+      again: "Continuar comprando",
+    },
+    review: {
+      title: "Pagamento em análise", icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
+      text: "O Mercado Pago está analisando o pagamento. Costuma levar poucos minutos, e você recebe a resposta por e-mail.",
+      again: "Fechar",
+    },
+    expired: {
+      title: "O Pix venceu", icon: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12M12 15.5v.5"/></svg>',
+      text: "Nenhum valor foi cobrado. Você pode voltar e gerar um novo Pix.",
+      again: "Gerar novo Pix",
+    },
+  };
+
+  function showDone(kind) {
+    const o = state.pay.order;
+    const d = DONE[kind];
+    state.pay.result = kind;
+    stopPoll();
+    fillOrderInfo();
+    orderWhatsapp(kind);
+    $("#done-icon").className = `done__icon done__icon--${kind}`;
+    $("#done-icon").innerHTML = d.icon;
+    $("#done-title").textContent = d.title;
+    $("#done-text").textContent = d.text;
+    $("#done-again").textContent = d.again;
+    $("#done-totals").innerHTML = [
+      ["Subtotal", brl(o.subtotal)],
+      ...(o.discount ? [["Desconto no Pix", `− ${brl(o.discount)}`]] : []),
+      ["Frete", brl(o.shipping)],
+      [kind === "paid" ? "Total pago" : "Total", brl(o.total)],
+    ].map(([k, v], i, arr) => `<div${i === arr.length - 1 ? ' class="totals__pix"' : ""}><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+    showStep("done", "Seu pedido");
+
+    if (kind === "paid") {
+      // Pedido pago: esvazia o carrinho
+      state.cart = {};
+      saveCart();
+      Object.assign(state.ship, { status: "idle", options: [], selected: null, msg: "", quoteId: null });
+      forgetOrder();
+      render();
+    } else if (kind === "expired") {
+      forgetOrder();
+    }
+  }
+
+  function finishPayment() {
+    const kind = state.pay.result;
+    if (kind === "expired") { state.pay.order = null; startPayment(); return; }
+    resetPayment();
+    $("#cart").close();
+  }
+
+  function resetPayment() {
+    stopPoll();
+    unmountBrick();
+    Object.assign(state.pay, { order: null, token: null, result: "", busy: false });
+    showStep("cart");
+  }
+
+  function payBack() {
+    if (state.pay.step === "checkout") { showStep("cart"); return; }
+    // voltou do Pix ou do cartão: o pedido fica para trás (o Pix vence sozinho)
+    forgetOrder();
+    state.pay.order = null;
+    startPayment();
+  }
+
+  // Ao abrir o carrinho: retoma um Pix em aberto ou mostra o pedido que já foi pago
+  async function resumeOrder() {
+    if (state.pay.resumed || !payOn()) return;
+    state.pay.resumed = true;
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(ORDER_KEY)); } catch { /* nada salvo */ }
+    if (!saved?.id || !saved?.token) return;
+    const res = await api({ action: "status", id: saved.id, token: saved.token });
+    if (!res.ok) { if (res.status === 404) forgetOrder(); return; }
+    if (state.pay.step !== "cart") return;
+    state.pay.order = res.body.order;
+    state.pay.token = saved.token;
+    if (applyResult(res.body.order)) return;
+    if (res.body.order.method === "pix" && res.body.order.pix) showPix();
+    else { forgetOrder(); state.pay.order = null; }
   }
 
   async function checkout() {
@@ -625,9 +1077,18 @@
       else if (d.dec) setQty(d.dec, (state.cart[d.dec] || 0) - 1);
       else if (d.remove) setQty(d.remove, 0);
       else if (d.cat) { state.category = d.cat; render(); }
-      else if (d.action === "cart") { renderCart(); cart.showModal(); }
+      else if (d.action === "cart") {
+        renderCart();
+        cart.showModal();
+        if (state.pay.step === "pix") startPoll();
+        resumeOrder();
+      }
       else if (d.action === "close-cart") cart.close();
       else if (d.action === "checkout") checkout();
+      else if (d.action === "pay-start") startPayment();
+      else if (d.action === "pay-back") payBack();
+      else if (d.action === "pay-finish") finishPayment();
+      else if (d.action === "pix-copy") copyPix();
       else if (d.action === "search") {
         $("#catalogo").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
         setTimeout(() => $("#search-input").focus({ preventScroll: true }), 350);
@@ -636,6 +1097,25 @@
 
     // fechar o carrinho tocando fora
     cart.addEventListener("click", (e) => { if (e.target === cart) cart.close(); });
+    cart.addEventListener("close", () => {
+      stopPoll();
+      // pedido pago: na próxima vez o carrinho abre do começo
+      if (state.pay.step === "done" && state.pay.result === "paid") resetPayment();
+    });
+
+    // pagamento: máscaras, troca de forma de pagamento e envio
+    const checkoutForm = $("#checkout-form");
+    $("#f-phone").addEventListener("input", (e) => { e.target.value = maskPhone(e.target.value); });
+    $("#f-cpf").addEventListener("input", (e) => { e.target.value = maskCpf(e.target.value); });
+    checkoutForm.addEventListener("change", (e) => {
+      if (e.target.name === "method") updateSubmitLabel();
+      // tira o aviso de erro assim que o campo é corrigido
+      if (e.target.getAttribute("aria-invalid") === "true" && !validate(readForm()).includes(e.target.name)) {
+        e.target.setAttribute("aria-invalid", "false");
+        (e.target.name === "age" ? $("#e-age") : e.target.closest(".field")).classList.remove("is-invalid");
+      }
+    });
+    checkoutForm.addEventListener("submit", submitCheckout);
 
     let debounce;
     $("#search-input").addEventListener("input", (e) => {
