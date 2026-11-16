@@ -38,6 +38,13 @@ Use **Table Editor → products**. Campos principais:
 - `image_url`: link da foto. Sem foto, o site mostra um ícone da categoria.
 - `active = false`: esconde o produto do site.
 
+## Aviso de idade e o que pode ser vendido
+
+- `ageGate: true` no `config.js` mostra a pergunta "Você tem 18 anos ou mais?" na primeira visita. O rodapé e o pedido no WhatsApp também trazem o aviso.
+- O catálogo é só de **acessórios de tabacaria**. Não cadastre:
+  - produtos de tabaco (fumo, cigarros), porque a Lei 9.294/96 proíbe vendê-los por via postal;
+  - cigarros eletrônicos, refis ou essências, porque a venda e a propaganda são proibidas pela Anvisa (RDC 855/2024).
+
 ## Baixa de estoque
 
 As vendas fecham no WhatsApp, então a baixa é feita pela equipe no `admin.html` (botão −). Todos os clientes com o site aberto veem o número mudar na hora.
