@@ -37,13 +37,14 @@ window.STORE_CONFIG = {
   // Supabase ------------------------------------------------------------
   // Supabase Dashboard > Project Settings > API
   // Deixe vazio para rodar com os produtos de demonstração abaixo.
-  supabaseUrl: "",
-  supabaseAnonKey: "",
+  // A chave publishable/anon pode ficar no site. A service_role/secret NUNCA.
+  supabaseUrl: "https://ecrksazbbqoraenvynsg.supabase.co",
+  supabaseAnonKey: "sb_publishable_w9J0zF9Pq_FsQ6rg2OQ3Zg_XgZ-pHrc",
 
   // Frete ---------------------------------------------------------------
   // Calculado pela Edge Function "frete" (supabase/functions/frete).
-  // Aparece no carrinho só quando o Supabase acima estiver preenchido.
-  freight: true,
+  // Mude para true depois de publicar a função "frete" e os secrets.
+  freight: false,
   freightFunction: "frete",
 
   // Pagamento no site (Mercado Pago) -------------------------------------
