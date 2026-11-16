@@ -15,12 +15,11 @@ window.STORE_CONFIG = {
 
   // Promoções -----------------------------------------------------------
   pixDiscount: 0.035,                 // 3,5% de desconto no Pix
-  topBarText: "10% OFF NA PRIMEIRA COMPRA • USE O CUPOM BEMVINDO",
-  marquee: ["MÊS DA BLACK", "ENVIO NO MESMO DIA", "FRETE PARA TODO O BRASIL", "DESCONTO NO PIX", "QUEIMA DE ESTOQUE"],
+  topBarText: "10% off na primeira compra com o cupom BEMVINDO",
+  marquee: ["Mês da Black", "Envio no mesmo dia", "Frete para todo o Brasil", "Desconto no Pix", "Queima de estoque"],
   countdownTo: "2026-11-27T00:00:00-03:00",   // início da Black Friday
-  heroKicker: "NOVEMBRO É MÊS DA BLACK",
-  heroTitle: ["PRÉ", "BLACK"],
-  heroDeal: "ATÉ 20% OFF",
+  heroTitle: ["Pré", "Black"],
+  heroDeal: "Até 20% off",
   heroText: "Preço de Black antes da Black em fones, carregadores e acessórios selecionados.",
   lowStockThreshold: 3,               // "Restam X unidades" quando estoque ≤ este valor
 
