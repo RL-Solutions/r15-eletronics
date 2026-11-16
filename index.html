@@ -9,9 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=7">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%237c3aed'/><text x='32' y='42' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='24' text-anchor='middle' fill='%23ffffff'>R15</text></svg>">
-  <script src="config.js?v=6"></script>
+  <script src="config.js?v=7"></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -44,34 +44,106 @@
     </div>
   </header>
 
-  <div class="marquee" id="marquee-box">
-    <div class="marquee__viewport" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
-    <p class="visually-hidden" id="marquee-text"></p>
-    <button class="marquee__toggle" type="button" id="marquee-toggle" aria-pressed="false" aria-label="Pausar faixa de avisos">
-      <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
-    </button>
-  </div>
-
   <main id="conteudo" tabindex="-1">
-    <!-- HERO -->
+    <!-- BANNER PRINCIPAL -->
     <section class="hero" aria-labelledby="hero-title">
+      <div class="hero__glow" aria-hidden="true"></div>
       <div class="container hero__inner">
-        <h1 class="hero__title" id="hero-title"></h1>
-        <p class="hero__deal js-hero-deal"></p>
-        <p class="hero__text js-hero-text"></p>
 
-        <div class="countdown" id="countdown" role="timer" aria-live="off">
-          <p class="countdown__label">A Black Friday começa em</p>
-          <div class="countdown__grid">
-            <div><span data-unit="d">00</span><small>dias</small></div>
-            <div><span data-unit="h">00</span><small>hrs</small></div>
-            <div><span data-unit="m">00</span><small>min</small></div>
-            <div><span data-unit="s">00</span><small>seg</small></div>
-          </div>
+        <div class="hero__copy">
+          <p class="hero__kicker"><span class="hero__dot" aria-hidden="true"></span><span class="js-hero-kicker"></span></p>
+          <h1 class="hero__title" id="hero-title"></h1>
+          <p class="ticket"><span class="ticket__pre js-deal-pre"></span><b class="ticket__value js-deal-value"></b><span class="ticket__post js-deal-post"></span></p>
+          <p class="hero__text"><span class="js-hero-text"></span> <strong class="js-hero-strong"></strong></p>
         </div>
 
-        <div class="hero__cta"><a class="btn btn--primary btn--lg btn--pill btn--block" href="#queima">Ver ofertas da semana</a></div>
-        <p class="hero__note">Ofertas, preços e condições podem mudar sem aviso prévio.</p>
+        <div class="hero__art">
+          <svg viewBox="0 0 400 360" role="img" aria-label="Isqueiro jet, livreto de seda e bag anti-odor da R15">
+            <defs>
+              <radialGradient id="g-glow" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#7c3aed" stop-opacity=".55"/><stop offset="1" stop-color="#7c3aed" stop-opacity="0"/></radialGradient>
+              <linearGradient id="g-body" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#231d33"/><stop offset="1" stop-color="#0c0a12"/></linearGradient>
+              <linearGradient id="g-rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d4c4ff"/><stop offset="1" stop-color="#7c3aed"/></linearGradient>
+              <linearGradient id="g-metal" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a8599"/><stop offset=".45" stop-color="#ece9f5"/><stop offset="1" stop-color="#77728a"/></linearGradient>
+              <linearGradient id="g-flame" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#7c3aed"/><stop offset=".6" stop-color="#a78bfa"/><stop offset="1" stop-color="#ede9fe" stop-opacity=".2"/></linearGradient>
+              <linearGradient id="g-seda" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b2470"/><stop offset="1" stop-color="#1a1030"/></linearGradient>
+              <linearGradient id="g-bag" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6d28d9"/><stop offset="1" stop-color="#2e1065"/></linearGradient>
+              <filter id="f-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
+            </defs>
+
+            <ellipse cx="200" cy="190" rx="190" ry="160" fill="url(#g-glow)"/>
+            <ellipse cx="200" cy="334" rx="150" ry="12" fill="#000" opacity=".55"/>
+
+            <!-- livreto de seda -->
+            <g transform="translate(46 128) rotate(-11)">
+              <rect x="10" y="-12" width="80" height="22" rx="2" fill="#efe8da"/>
+              <rect x="14" y="-6" width="72" height="16" rx="2" fill="#e2d9c6"/>
+              <rect width="100" height="170" rx="9" fill="url(#g-seda)" stroke="rgba(212,196,255,.35)"/>
+              <text x="50" y="40" text-anchor="middle" font-family="Archivo Black, sans-serif" font-size="20" fill="#efeaff">R15</text>
+              <rect y="62" width="100" height="44" fill="#b69cff"/>
+              <text x="10" y="82" font-family="Archivo Black, sans-serif" font-size="11" fill="#170f2a">KING SIZE</text>
+              <text x="10" y="97" font-family="Archivo, sans-serif" font-weight="700" font-size="9" fill="#2a1a4f">33 FOLHAS</text>
+              <rect x="6" y="6" width="5" height="158" rx="2.5" fill="#fff" opacity=".08"/>
+            </g>
+
+            <!-- bag anti-odor -->
+            <g transform="translate(262 146) rotate(9)">
+              <rect width="100" height="156" rx="18" fill="url(#g-bag)" stroke="rgba(212,196,255,.35)"/>
+              <rect x="10" y="18" width="80" height="6" rx="3" fill="#1a0b3a"/>
+              <rect x="70" y="12" width="11" height="18" rx="3" fill="url(#g-metal)"/>
+              <circle cx="50" cy="86" r="24" fill="none" stroke="#e9e3ff" stroke-opacity=".55" stroke-width="2"/>
+              <text x="50" y="92" text-anchor="middle" font-family="Archivo Black, sans-serif" font-size="15" fill="#f4f0ff">R15</text>
+              <text x="50" y="134" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="700" font-size="9" letter-spacing="1" fill="#d8ccff">ANTI-ODOR</text>
+              <rect x="8" y="30" width="5" height="110" rx="2.5" fill="#fff" opacity=".1"/>
+            </g>
+
+            <!-- isqueiro jet -->
+            <g transform="translate(150 56)">
+              <rect x="-4" y="66" width="108" height="208" rx="22" fill="#7c3aed" opacity=".7" filter="url(#f-blur)"/>
+              <path d="M50 14 C38 -6 45 -26 50 -44 C56 -26 63 -6 50 14 Z" fill="url(#g-flame)"/>
+              <rect x="40" y="12" width="20" height="24" rx="4" fill="#6f6a80"/>
+              <rect x="10" y="32" width="80" height="46" rx="10" fill="url(#g-metal)"/>
+              <rect x="-7" y="118" width="9" height="42" rx="3" fill="url(#g-metal)"/>
+              <rect y="70" width="100" height="204" rx="18" fill="url(#g-body)" stroke="url(#g-rim)" stroke-width="2.5"/>
+              <rect x="16" y="98" width="68" height="124" rx="11" fill="#08070d" stroke="rgba(182,156,255,.3)"/>
+              <text x="50" y="166" text-anchor="middle" font-family="Archivo Black, sans-serif" font-size="27" fill="url(#g-rim)">R15</text>
+              <text x="50" y="188" text-anchor="middle" font-family="Archivo, sans-serif" font-weight="700" font-size="10" letter-spacing="2" fill="#9aa1ad">JET FLAME</text>
+              <rect x="9" y="82" width="6" height="180" rx="3" fill="#fff" opacity=".08"/>
+            </g>
+
+            <!-- piteira de vidro -->
+            <g transform="translate(96 300) rotate(-4)">
+              <rect width="96" height="16" rx="8" fill="rgba(182,156,255,.28)" stroke="rgba(255,255,255,.45)"/>
+              <rect x="8" y="4" width="70" height="3" rx="1.5" fill="#fff" opacity=".45"/>
+            </g>
+          </svg>
+        </div>
+
+        <div class="hero__side">
+          <div class="countdown" id="countdown" role="timer" aria-live="off">
+            <p class="countdown__label">A Black Friday começa em</p>
+            <div class="countdown__grid">
+              <div><span data-unit="d">00</span><small>dias</small></div>
+              <div><span data-unit="h">00</span><small>hrs</small></div>
+              <div><span data-unit="m">00</span><small>min</small></div>
+              <div><span data-unit="s">00</span><small>seg</small></div>
+            </div>
+          </div>
+          <a class="btn btn--primary btn--lg hero__cta" href="#queima">Ver ofertas
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </a>
+          <p class="hero__note">*Ofertas, preços e condições podem mudar sem aviso prévio.</p>
+        </div>
+      </div>
+
+      <!-- Faixa inclinada -->
+      <div class="hero__ribbon">
+        <div class="marquee" id="marquee-box">
+          <div class="marquee__viewport" aria-hidden="true"><div class="marquee__track" id="marquee"></div></div>
+          <p class="visually-hidden" id="marquee-text"></p>
+          <button class="marquee__toggle" type="button" id="marquee-toggle" aria-pressed="false" aria-label="Pausar faixa de avisos">
+            <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>
+          </button>
+        </div>
       </div>
     </section>
 
@@ -98,14 +170,32 @@
     </section>
 
     <!-- QUEIMA DE ESTOQUE -->
-    <section class="section section--flash" id="queima" aria-labelledby="t-queima">
-      <div class="container section__head">
-        <div>
-          <h2 id="t-queima">Queima de estoque</h2>
-          <p class="section__sub">Últimas unidades com preços especiais. Corra antes que acabe!</p>
-        </div>
+    <section class="flash" id="queima" aria-labelledby="t-queima">
+      <div class="flash__panel">
+        <svg class="flash__fire flash__fire--l" viewBox="0 0 160 170" aria-hidden="true" focusable="false">
+          <path class="fire-out" d="M80 4c12 34 52 52 52 102 0 36-24 60-52 60s-52-24-52-60c0-30 16-46 24-70 6 18 12 26 20 30-6-24-2-44 8-62Z"/>
+          <path class="fire-mid" d="M82 58c8 22 32 36 32 66 0 24-15 40-34 40s-34-16-34-40c0-18 10-28 16-42 4 12 9 17 14 19-3-16 0-30 6-43Z"/>
+          <path class="fire-in" d="M80 104c5 12 16 20 16 34 0 13-7 22-16 22s-16-9-16-22c0-10 5-15 8-22 2 6 4 8 7 9-1-8 0-14 1-21Z"/>
+          <path class="fire-out" d="M28 96c6 16 22 26 22 46 0 15-10 24-22 24s-22-9-22-24c0-12 6-18 10-28 2 7 5 10 8 11-2-10 0-19 4-29Z"/>
+        </svg>
+        <svg class="flash__fire flash__fire--r" viewBox="0 0 160 170" aria-hidden="true" focusable="false">
+          <path class="fire-out" d="M80 4c12 34 52 52 52 102 0 36-24 60-52 60s-52-24-52-60c0-30 16-46 24-70 6 18 12 26 20 30-6-24-2-44 8-62Z"/>
+          <path class="fire-mid" d="M82 58c8 22 32 36 32 66 0 24-15 40-34 40s-34-16-34-40c0-18 10-28 16-42 4 12 9 17 14 19-3-16 0-30 6-43Z"/>
+          <path class="fire-in" d="M80 104c5 12 16 20 16 34 0 13-7 22-16 22s-16-9-16-22c0-10 5-15 8-22 2 6 4 8 7 9-1-8 0-14 1-21Z"/>
+          <path class="fire-out" d="M28 96c6 16 22 26 22 46 0 15-10 24-22 24s-22-9-22-24c0-12 6-18 10-28 2 7 5 10 8 11-2-10 0-19 4-29Z"/>
+        </svg>
+
+        <header class="flash__head">
+          <p class="flash__pill js-flash-pill">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3.5 2-5 3-8 .8 2 1.6 3 2.6 3.4C11 7 11.2 4.4 12 2Z"/></svg>
+            <span class="js-flash-kicker"></span>
+          </p>
+          <h2 class="flash__title" id="t-queima"><span>Queima de</span> <span>estoque</span></h2>
+          <p class="flash__sub">Últimas unidades com preços especiais. Corra antes que acabe!</p>
+        </header>
+
+        <div class="rail rail--flash" data-list="clearance" role="list"></div>
       </div>
-      <div class="rail" data-list="clearance" role="list"></div>
     </section>
 
     <!-- ENVIO IMEDIATO -->
@@ -209,6 +299,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=6"></script>
+  <script src="app.js?v=7"></script>
 </body>
 </html>
