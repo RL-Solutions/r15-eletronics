@@ -26,6 +26,13 @@ create table if not exists public.products (
 create index if not exists products_active_idx   on public.products (active, sort_order);
 create index if not exists products_category_idx on public.products (category);
 
+-- Peso e medidas da embalagem de UMA unidade (usados no cálculo do frete).
+-- Os padrões servem para itens pequenos; ajuste bags, cases e bandejas.
+alter table public.products add column if not exists weight_kg numeric(6,3) not null default 0.2  check (weight_kg > 0);
+alter table public.products add column if not exists width_cm  numeric(5,1) not null default 12   check (width_cm  > 0);
+alter table public.products add column if not exists height_cm numeric(5,1) not null default 4    check (height_cm > 0);
+alter table public.products add column if not exists length_cm numeric(5,1) not null default 17   check (length_cm > 0);
+
 -- updated_at automático
 create or replace function public.touch_updated_at()
 returns trigger language plpgsql as $$
