@@ -4,7 +4,8 @@ Site estático para GitHub Pages:
 
 - **Vitrine** (`index.html`): pensada primeiro para celular, com navegação inferior, carrosséis com swipe e carrinho em painel deslizante.
 - **Estoque ao vivo:** a contagem vem do Supabase e atualiza na tela sem recarregar (Realtime).
-- **Carrinho:** respeita o estoque disponível. O pedido é finalizado pelo **WhatsApp**, com a mensagem já montada.
+- **Carrinho:** respeita o estoque disponível e calcula o frete pelo CEP.
+- **Pagamento no site:** Pix e cartão em até 12x pelo **Mercado Pago**. Cada pedido tem um número único (ex.: `R15-1001`), e depois de pagar o cliente pode falar do pedido no WhatsApp com a mensagem já pronta. Sem o Mercado Pago configurado, o pedido segue pelo WhatsApp.
 - **Painel admin** (`admin.html`): login da equipe e botões **+ / −** para ajustar o estoque pelo celular.
 
 Sem o Supabase configurado, o site roda com produtos de demonstração.
@@ -18,6 +19,7 @@ Sem o Supabase configurado, o site roda com produtos de demonstração.
 | `admin.html` | Painel de estoque |
 | `supabase/schema.sql` | Tabela `products` (com peso e medidas para o frete), segurança (RLS), função `adjust_stock`, Realtime e produtos de exemplo |
 | `supabase/functions/frete/index.ts` | Edge Function que calcula o frete (Correios, Melhor Envio, Uber Direct e Lalamove) |
+| `supabase/functions/pagamento/index.ts` | Edge Function que cria os pedidos, cobra no Pix ou no cartão e recebe os avisos do Mercado Pago |
 
 ## Ligar o Supabase (cerca de 5 minutos)
 
@@ -92,6 +94,57 @@ Com o contrato dos Correios ligado, a função não repete os Correios que vêm 
 - **Confira a lista de itens proibidos de cada transportadora.** Isqueiros com gás ou fluido costumam ser proibidos nos Correios e no transporte aéreo. Apps de entrega também podem restringir produtos de tabacaria.
 - Se um provedor sair do ar, os outros continuam aparecendo. O erro fica em **Edge Functions → frete → Logs**.
 
+## Pagamento no site (Mercado Pago)
+
+**Antes de tudo:** confirme com o Mercado Pago que a sua atividade (acessórios de tabacaria) é aceita. Os termos deles restringem produtos ligados a tabaco, e uma conta fora das regras pode ter o dinheiro retido.
+
+### Como funciona
+
+1. No carrinho, o cliente calcula o frete e toca em **Ir para o pagamento**.
+2. Preenche nome, e-mail, WhatsApp, CPF, número e complemento, e confirma que tem 18 anos ou mais.
+3. **Pix:** aparecem o QR Code e o código copia-e-cola, com prazo para pagar (30 minutos por padrão). O site confere sozinho e mostra "Pagamento aprovado" assim que o Pix cai.
+4. **Cartão:** o formulário é o oficial do Mercado Pago, dentro do site. Os dados do cartão vão direto para o Mercado Pago e nunca passam pela loja.
+5. Com o pagamento aprovado, o carrinho esvazia, o estoque baixa sozinho e aparece o botão **Falar sobre o pedido no WhatsApp**, com o número do pedido na mensagem.
+
+Os preços e o frete são calculados na Edge Function, a partir do banco e da cotação salva. Não dá para mudar o valor cobrado pelo navegador.
+
+### Configurar (cerca de 15 minutos)
+
+1. **Rode o `supabase/schema.sql` de novo.** Ele cria as tabelas `orders` (pedidos) e `shipping_quotes` (cotações de frete) e a função que baixa o estoque.
+2. **Crie a aplicação no Mercado Pago:** em [Suas integrações](https://www.mercadopago.com.br/developers/panel/app), crie uma aplicação de pagamentos online. Em **Credenciais**, ficam a **Public Key** e o **Access Token**. Comece pelas **credenciais de teste**.
+3. **Publique a função** `pagamento`: **Edge Functions → Deploy a new function → Via Editor**, nome `pagamento`, cole `supabase/functions/pagamento/index.ts`.
+   - Desligue **Enforce JWT verification** nessa função. O aviso do Mercado Pago não manda a chave do Supabase.
+   - Pelo terminal: `npx supabase functions deploy pagamento --no-verify-jwt`.
+4. **Secrets** (Edge Functions → Secrets):
+
+   | Secret | Para quê |
+   |---|---|
+   | `MP_ACCESS_TOKEN` | **Obrigatório.** Access Token do Mercado Pago. Nunca coloque no site |
+   | `MP_WEBHOOK_SECRET` | Recomendado. Assinatura secreta do webhook (passo 5) |
+   | `PIX_DESCONTO` | Desconto do Pix. Padrão `0.035`; **use o mesmo valor de `pixDiscount` no `config.js`** |
+   | `PIX_EXPIRA_MIN` | Minutos para pagar o Pix. Padrão `30` |
+   | `APP_NOME` | Nome da loja na descrição do pagamento |
+   | `MP_FATURA` | Nome na fatura do cartão (até 13 letras), ex.: `R15ELETRONICS` |
+   | `ALLOWED_ORIGINS` | Recomendado: `https://rl-solutions.github.io` |
+
+5. **Webhook:** na sua aplicação do Mercado Pago, em **Webhooks**, coloque a URL `https://SEU-PROJETO.supabase.co/functions/v1/pagamento/webhook`, marque o evento **Pagamentos** e copie a **assinatura secreta** para o secret `MP_WEBHOOK_SECRET`. Mesmo se o aviso atrasar, o site consulta o Mercado Pago enquanto o cliente espera.
+6. **No `config.js`,** cole a Public Key em `mercadoPagoPublicKey`. A Public Key pode ficar no site.
+7. **Teste** com as credenciais de teste e os [cartões de teste](https://www.mercadopago.com.br/developers/pt/docs/checkout-api/integration-test/test-cards) do Mercado Pago. Depois troque **as duas** (Public Key e Access Token) pelas de produção. As duas precisam ser do mesmo modo, teste ou produção.
+
+### Acompanhar os pedidos
+
+Os pedidos ficam em **Table Editor → orders**. O campo `code` é o número que o cliente vê, e `id` é o identificador interno; os dois são únicos.
+
+| `status` | O que quer dizer |
+|---|---|
+| `pending` | Aguardando o pagamento |
+| `paid` | Pago. O estoque já foi baixado; é só separar e enviar |
+| `expired` / `cancelled` | O Pix venceu ou o pagamento foi cancelado. Nada foi cobrado |
+| `refunded` | Estornado ou contestado no cartão |
+| `needs_review` | **Precisa da sua atenção.** O motivo fica em `review_reason`: pagamento em dobro, valor menor que o total, estoque que acabou entre o pedido e o pagamento, ou pago depois de vencer. Resolva pelo painel do Mercado Pago (estorno) e fale com o cliente |
+
+Os dados dos clientes (nome, CPF, e-mail, telefone, endereço) só aparecem para quem está logado no Supabase. Cite essa coleta na política de privacidade da loja (LGPD).
+
 ## Aviso de idade e o que pode ser vendido
 
 - `ageGate: true` no `config.js` mostra a pergunta "Você tem 18 anos ou mais?" na primeira visita. O rodapé e o pedido no WhatsApp também trazem o aviso.
@@ -101,4 +154,4 @@ Com o contrato dos Correios ligado, a função não repete os Correios que vêm 
 
 ## Baixa de estoque
 
-As vendas fecham no WhatsApp, então a baixa é feita pela equipe no `admin.html` (botão −). Todos os clientes com o site aberto veem o número mudar na hora.
+Pedidos pagos no site baixam o estoque sozinhos. Vendas fechadas no WhatsApp ou no balcão são baixadas pela equipe no `admin.html` (botão −). Todos os clientes com o site aberto veem o número mudar na hora.
