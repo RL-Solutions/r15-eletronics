@@ -4,8 +4,11 @@
 window.STORE_CONFIG = {
   // Marca ---------------------------------------------------------------
   brandName: "R15 Eletronics",
-  brandTagline: "Eletrônicos e acessórios",
+  brandTagline: "Tabacaria e acessórios",
   brandInitial: "R15",                // texto do ícone do logo (até 3 caracteres)
+
+  // Aviso de idade ------------------------------------------------------
+  ageGate: true,                      // pergunta "Você tem 18 anos ou mais?" na entrada
 
   // Contato -------------------------------------------------------------
   // WhatsApp no formato internacional, só números (55 + DDD + número)
@@ -16,11 +19,11 @@ window.STORE_CONFIG = {
   // Promoções -----------------------------------------------------------
   pixDiscount: 0.035,                 // 3,5% de desconto no Pix
   topBarText: "10% off na primeira compra com o cupom BEMVINDO",
-  marquee: ["Mês da Black", "Envio no mesmo dia", "Frete para todo o Brasil", "Desconto no Pix", "Queima de estoque"],
+  marquee: ["Mês da Black", "Envio no mesmo dia", "Frete para todo o Brasil", "Desconto no Pix", "Venda só para maiores de 18 anos"],
   countdownTo: "2026-11-27T00:00:00-03:00",   // início da Black Friday
   heroTitle: ["Pré", "Black"],
-  heroDeal: "Até 20% off",
-  heroText: "Preço de Black antes da Black em fones, carregadores e acessórios selecionados.",
+  heroDeal: "Até 25% off",
+  heroText: "Preço de Black antes da Black em sedas, isqueiros, bags e cases selecionados.",
   lowStockThreshold: 3,               // "Restam X unidades" quando estoque ≤ este valor
 
   // Supabase ------------------------------------------------------------
@@ -32,18 +35,19 @@ window.STORE_CONFIG = {
 
 // Produtos de demonstração (usados só enquanto o Supabase não está configurado)
 window.DEMO_PRODUCTS = [
-  { id: 1,  name: "Fone Bluetooth Pro ANC",    variant: "Preto",      brand: "Sonik",   category: "Áudio",        price: 249.90, sale_price: 199.90, stock: 14, featured: true,  clearance: false, ships_today: true  },
-  { id: 2,  name: "Caixa de Som Boom Mini",     variant: "Azul",       brand: "Sonik",   category: "Áudio",        price: 189.90, sale_price: 159.90, stock: 6,  featured: true,  clearance: false, ships_today: true  },
-  { id: 3,  name: "Carregador Turbo 65W GaN",   variant: "USB-C x2",   brand: "Voltera", category: "Carregadores", price: 159.90, sale_price: 129.90, stock: 22, featured: true,  clearance: false, ships_today: true  },
-  { id: 4,  name: "Power Bank 20.000mAh",       variant: "Grafite",    brand: "Voltera", category: "Carregadores", price: 199.90, sale_price: 169.90, stock: 9,  featured: true,  clearance: false, ships_today: true  },
-  { id: 5,  name: "Smartwatch Fit S3",          variant: "Preto",      brand: "Pulso",   category: "Wearables",    price: 329.90, sale_price: 279.90, stock: 4,  featured: true,  clearance: false, ships_today: false },
-  { id: 6,  name: "Cabo USB-C Trançado 2m",     variant: "100W",       brand: "Voltera", category: "Cabos",        price: 49.90,  sale_price: 39.90,  stock: 40, featured: true,  clearance: false, ships_today: true  },
-  { id: 7,  name: "Ring Light 10\" com Tripé",  variant: "Branco",     brand: "Lumo",    category: "Acessórios",   price: 139.90, sale_price: null,   stock: 12, featured: true,  clearance: false, ships_today: true  },
-  { id: 8,  name: "Teclado Mecânico Compacto",  variant: "Switch Red", brand: "Kraft",   category: "Gamer",        price: 299.90, sale_price: 259.90, stock: 7,  featured: true,  clearance: false, ships_today: false },
-  { id: 9,  name: "Fone TWS Air Lite",          variant: "Branco",     brand: "Sonik",   category: "Áudio",        price: 129.90, sale_price: 99.90,  stock: 1,  featured: false, clearance: true,  ships_today: true  },
-  { id: 10, name: "Mouse Gamer RGB 12.000 DPI", variant: "Preto",      brand: "Kraft",   category: "Gamer",        price: 149.90, sale_price: 119.90, stock: 2,  featured: false, clearance: true,  ships_today: true  },
-  { id: 11, name: "Suporte Veicular Magnético", variant: "MagSafe",    brand: "Lumo",    category: "Acessórios",   price: 89.90,  sale_price: 69.90,  stock: 1,  featured: false, clearance: true,  ships_today: true  },
-  { id: 12, name: "Hub USB-C 7 em 1",           variant: "HDMI 4K",    brand: "Voltera", category: "Acessórios",   price: 219.90, sale_price: 179.90, stock: 2,  featured: false, clearance: true,  ships_today: true  },
-  { id: 13, name: "Película Hydrogel Premium",  variant: "Universal",  brand: "Lumo",    category: "Acessórios",   price: 39.90,  sale_price: null,   stock: 55, featured: false, clearance: false, ships_today: true  },
-  { id: 14, name: "Controle Bluetooth Gamepad", variant: "Preto",      brand: "Kraft",   category: "Gamer",        price: 179.90, sale_price: 149.90, stock: 0,  featured: false, clearance: false, ships_today: true  },
+  { id: 1,  name: "Seda King Size Slim",            variant: "Livreto com 33 folhas",  category: "Sedas",        price: 7.90,   sale_price: 6.50,   stock: 120, featured: true,  clearance: false, ships_today: true  },
+  { id: 2,  name: "Seda Brown King Size",            variant: "Sem branqueamento",      category: "Sedas",        price: 8.90,   sale_price: null,   stock: 85,  featured: true,  clearance: false, ships_today: true  },
+  { id: 3,  name: "Piteira de Vidro Reutilizável",   variant: "6 mm",                   category: "Piteiras",     price: 24.90,  sale_price: 19.90,  stock: 18,  featured: true,  clearance: false, ships_today: true  },
+  { id: 4,  name: "Bloco de Piteiras de Papel",      variant: "Extra longa",            category: "Piteiras",     price: 6.90,   sale_price: 5.90,   stock: 64,  featured: true,  clearance: false, ships_today: true  },
+  { id: 5,  name: "Isqueiro Recarregável",           variant: "Preto fosco",            category: "Isqueiros",    price: 14.90,  sale_price: 12.90,  stock: 40,  featured: true,  clearance: false, ships_today: true  },
+  { id: 6,  name: "Isqueiro Maçarico Jet",           variant: "Chama azul",             category: "Isqueiros",    price: 69.90,  sale_price: 54.90,  stock: 5,   featured: true,  clearance: false, ships_today: false },
+  { id: 7,  name: "Bag Anti-Odor Média",             variant: "Roxa, com zíper",        category: "Bags",         price: 89.90,  sale_price: 69.90,  stock: 12,  featured: true,  clearance: false, ships_today: true  },
+  { id: 8,  name: "Case Rígido com Divisórias",      variant: "Preto",                  category: "Cases",        price: 59.90,  sale_price: 49.90,  stock: 9,   featured: true,  clearance: false, ships_today: true  },
+  { id: 9,  name: "Bag Impermeável Pequena",         variant: "Preta",                  category: "Bags",         price: 45.00,  sale_price: 34.90,  stock: 1,   featured: false, clearance: true,  ships_today: true  },
+  { id: 10, name: "Dichavador de Metal 4 Partes",    variant: "Grafite, 50 mm",         category: "Dichavadores", price: 79.90,  sale_price: 59.90,  stock: 2,   featured: false, clearance: true,  ships_today: true  },
+  { id: 11, name: "Case Porta-Sedas",                variant: "Couro sintético",        category: "Cases",        price: 39.90,  sale_price: 29.90,  stock: 1,   featured: false, clearance: true,  ships_today: true  },
+  { id: 12, name: "Piteira de Vidro Colorida",       variant: "8 mm, roxa",             category: "Piteiras",     price: 29.90,  sale_price: 22.90,  stock: 2,   featured: false, clearance: true,  ships_today: true  },
+  { id: 13, name: "Bandeja de Metal Média",          variant: "27 × 16 cm",             category: "Acessórios",   price: 34.90,  sale_price: null,   stock: 22,  featured: false, clearance: false, ships_today: true  },
+  { id: 14, name: "Cinzeiro de Silicone",            variant: "Roxo",                   category: "Acessórios",   price: 24.90,  sale_price: 19.90,  stock: 15,  featured: false, clearance: false, ships_today: true  },
+  { id: 15, name: "Bag Grande com Cadeado",          variant: "Preta",                  category: "Bags",         price: 129.90, sale_price: 109.90, stock: 0,   featured: false, clearance: false, ships_today: true  },
 ];
