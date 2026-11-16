@@ -72,7 +72,7 @@ async function loadProducts(qty) {
   const ids = [...qty.keys()].join(",");
   const rows = await getJson(
     `${url}/rest/v1/products?select=id,price,sale_price,weight_kg,width_cm,height_cm,length_cm&active=eq.true&id=in.(${ids})`,
-    { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+    { headers: key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: `Bearer ${key}` } },
   );
   return (rows || []).map((r) => {
     const price = Number(r.price);
@@ -384,12 +384,33 @@ export async function handler(req) {
   }
   options.sort((a, b) => a.price - b.price);
 
-  return json({
-    cep,
-    address: { street: address.street, district: address.district, city: address.city, uf: address.uf },
-    options,
-    unavailable,
-  }, 200, cors);
+  const publicAddress = { street: address.street, district: address.district, city: address.city, uf: address.uf };
+  const quoteId = options.length ? await saveQuote(cep, publicAddress, qty, options) : null;
+
+  return json({ cep, address: publicAddress, options, unavailable, quote_id: quoteId }, 200, cors);
+}
+
+// A cotação fica salva para a função "pagamento" cobrar exatamente este frete
+export const itemsKey = (qty) => [...qty.entries()].map(([id, q]) => `${id}:${q}`).sort().join(",");
+
+function serviceHeaders() {
+  const key = env("SUPABASE_SERVICE_ROLE_KEY");
+  return key.startsWith("sb_") ? { apikey: key } : { apikey: key, Authorization: `Bearer ${key}` };
+}
+
+async function saveQuote(cep, address, qty, options) {
+  if (!env("SUPABASE_SERVICE_ROLE_KEY")) return null;
+  try {
+    const rows = await getJson(`${env("SUPABASE_URL")}/rest/v1/shipping_quotes`, {
+      method: "POST",
+      headers: { ...serviceHeaders(), "Content-Type": "application/json", Prefer: "return=representation" },
+      body: JSON.stringify({ cep, address, items_key: itemsKey(qty), options }),
+    });
+    return rows?.[0]?.id ?? null;
+  } catch (err) {
+    console.error("frete: falha ao salvar a cotação", String(err));
+    return null;
+  }
 }
 
 globalThis.Deno?.serve(handler);
