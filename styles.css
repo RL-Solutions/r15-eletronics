@@ -370,6 +370,27 @@ button, .btn, .chip, .bottom-nav a, .icon-btn {
 .totals dd { margin: 0; font-weight: 800; }
 .totals__pix dd { color: var(--up); font-size: 19px; }
 
+/* ---------- Aviso de idade ---------- */
+.age {
+  width: min(calc(100% - 32px), 400px); padding: var(--s5); border: 1px solid var(--hairline); border-radius: 16px;
+  background: var(--surface); color: var(--text); text-align: center;
+}
+.age[open] { animation: age-in 260ms var(--ease-out); }
+.age::backdrop { background: rgba(5,5,8,.92); }
+@keyframes age-in { from { opacity: 0; transform: scale(.96); } }
+.age__badge {
+  width: 56px; height: 56px; margin: 0 auto var(--s4); border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--on-accent); font-family: var(--display); font-size: 18px;
+}
+.age h2 { font-family: var(--display); font-weight: 400; font-size: 24px; margin-bottom: var(--s2); }
+.age__text { color: var(--muted); font-size: 15px; margin-bottom: var(--s5); }
+.age .btn + .btn { margin-top: var(--s2); }
+.age__denied:focus { outline: none; }
+.age__denied .age__text { margin-bottom: 0; }
+
+.footer__age { display: flex; align-items: center; gap: var(--s2); font-size: 14px; font-weight: 600; }
+.footer__age b { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--accent-text); color: var(--accent-text); font-size: 12px; flex: none; }
+
 /* ---------- Toast ---------- */
 .toast {
   position: fixed; left: 50%; bottom: calc(var(--nav-h) + var(--safe-b) + 84px); z-index: 60;
