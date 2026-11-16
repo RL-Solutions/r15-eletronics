@@ -6,7 +6,7 @@
 
   const CFG = window.STORE_CONFIG || {};
   const SUPABASE_SDK = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
-  const CART_KEY = "loja.cart.v1";
+  const CART_KEY = "loja.cart.v2";
 
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -46,12 +46,13 @@
 
   // Ícones por categoria (usados quando o produto não tem foto)
   const ICONS = {
-    "Áudio": '<path d="M4 14v-2a8 8 0 0 1 16 0v2"/><rect x="3" y="14" width="5" height="7" rx="2"/><rect x="16" y="14" width="5" height="7" rx="2"/>',
-    "Carregadores": '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="m13 7-3 5h4l-3 5"/>',
-    "Wearables": '<rect x="6" y="6" width="12" height="12" rx="3"/><path d="M9 6V2h6v4M9 18v4h6v-4M12 9v3l2 1"/>',
-    "Cabos": '<path d="M8 3v5M16 3v5"/><rect x="6" y="8" width="12" height="5" rx="1"/><path d="M12 13v3a5 5 0 0 1-5 5"/>',
-    "Gamer": '<path d="M6 9h12a4 4 0 0 1 4 4v1a3 3 0 0 1-5.4 1.8L15 14H9l-1.6 1.8A3 3 0 0 1 2 14v-1a4 4 0 0 1 4-4z"/><path d="M7 11.5v3M5.5 13h3"/><circle cx="16" cy="12" r=".6"/><circle cx="18" cy="14" r=".6"/>',
-    "Acessórios": '<rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 18h4"/>',
+    "Sedas": '<path d="M5 4h11l3 3v13H5z"/><path d="M16 4v3h3"/><path d="M8 10h8M8 13.5h8M8 17h5"/>',
+    "Piteiras": '<rect x="9" y="3" width="6" height="18" rx="3"/><path d="M9 8h6M9 16h6"/>',
+    "Isqueiros": '<rect x="7" y="10" width="10" height="11" rx="2"/><path d="M9 10V7h6v3"/><path d="M12 2.5c1.5 1.4 2 2.5 1.2 3.6-.5.7-1.9.7-2.4 0-.8-1.1-.3-2.2 1.2-3.6z"/>',
+    "Bags": '<path d="M5 8h14l-1 13H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/><path d="M8 12h8"/>',
+    "Cases": '<rect x="3" y="7" width="18" height="12" rx="2"/><path d="M9 7V5h6v2M3 12h18"/>',
+    "Dichavadores": '<ellipse cx="12" cy="6" rx="7" ry="2.5"/><path d="M5 6v12c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5V6"/><path d="M5 11.5c0 1.4 3.1 2.5 7 2.5s7-1.1 7-2.5"/>',
+    "Acessórios": '<rect x="3" y="8" width="18" height="10" rx="3"/><path d="M7 8V6M17 8V6"/>',
   };
   const icon = (cat) => `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[cat] || ICONS["Acessórios"]}</svg>`;
   const media = (p) => (p.image_url
@@ -273,6 +274,7 @@
       ...lines, "",
       `Subtotal: ${brl(subtotal)}`,
       `No Pix: ${brl(pixPrice(subtotal))}`, "",
+      ...(CFG.ageGate ? ["Confirmo que tenho 18 anos ou mais.", ""] : []),
       "Pode confirmar a disponibilidade e o frete?",
     ].join("\n");
     window.open(`https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
@@ -460,7 +462,31 @@
     window.addEventListener("storage", (e) => { if (e.key === CART_KEY) { state.cart = loadCart(); render(); } });
   }
 
+  // Aviso de idade (18+) na entrada
+  function setupAgeGate() {
+    const AGE_KEY = "loja.age.ok.v1";
+    const gate = $("#age-gate");
+    let ok = false;
+    try { ok = localStorage.getItem(AGE_KEY) === "1"; } catch { /* modo privado */ }
+    if (!CFG.ageGate || ok) { gate.remove(); return; }
+
+    $(".js-age-brand", gate).textContent = CFG.brandName || "Esta loja";
+    gate.addEventListener("cancel", (e) => e.preventDefault()); // Esc não fecha
+    $("#age-yes").addEventListener("click", () => {
+      try { localStorage.setItem(AGE_KEY, "1"); } catch { /* modo privado */ }
+      gate.close();
+      gate.remove();
+    });
+    $("#age-no").addEventListener("click", () => {
+      $("#age-ask").hidden = true;
+      $("#age-denied").hidden = false;
+      $("#age-denied").focus();
+    });
+    gate.showModal();
+  }
+
   fillStatic();
+  setupAgeGate();
   startCountdown();
   bindEvents();
   init();
