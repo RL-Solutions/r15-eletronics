@@ -9,9 +9,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=8">
+  <link rel="stylesheet" href="styles.css?v=9">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='14' fill='%237c3aed'/><text x='32' y='42' font-family='Arial Black,Arial,sans-serif' font-weight='900' font-size='24' text-anchor='middle' fill='%23ffffff'>R15</text></svg>">
-  <script src="config.js?v=8"></script>
+  <script src="config.js?v=9"></script>
 </head>
 <body>
   <a class="skip-link" href="#conteudo">Pular para o conteúdo</a>
@@ -260,11 +260,17 @@
   <dialog class="sheet" id="cart" aria-labelledby="cart-title">
     <div class="sheet__handle" aria-hidden="true"></div>
     <header class="sheet__head">
-      <h2 id="cart-title">Seu carrinho</h2>
+      <button class="icon-btn sheet__back" id="sheet-back" type="button" data-action="pay-back" aria-label="Voltar para o carrinho" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+      </button>
+      <h2 id="cart-title" tabindex="-1">Seu carrinho</h2>
       <button class="icon-btn" type="button" data-action="close-cart" aria-label="Fechar carrinho">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </button>
     </header>
+
+    <!-- Etapa 1: carrinho -->
+    <div class="sheet__step" data-step="cart">
     <div class="sheet__body">
       <ul class="cart-list" id="cart-list"></ul>
       <p class="empty" id="cart-empty">Seu carrinho está vazio.</p>
@@ -293,12 +299,141 @@
         <div class="totals__ship" id="cart-ship-row" hidden><dt>Frete</dt><dd id="cart-ship">R$ 0,00</dd></div>
         <div class="totals__pix"><dt id="cart-pix-label">No Pix</dt><dd id="cart-pix">R$ 0,00</dd></div>
       </dl>
-      <button class="btn btn--whats btn--lg btn--block" type="button" data-action="checkout">
+      <button class="btn btn--primary btn--lg btn--block" type="button" data-action="pay-start" id="pay-start" hidden>
+        Ir para o pagamento
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <button class="btn btn--whats btn--lg btn--block" type="button" data-action="checkout" id="wa-checkout">
         <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/></svg>
         Finalizar pelo WhatsApp
       </button>
-      <p class="sheet__note">Você confirma o pedido, o frete e o pagamento com a nossa equipe no WhatsApp.</p>
+      <p class="sheet__note" id="cart-note">Você confirma o pedido, o frete e o pagamento com a nossa equipe no WhatsApp.</p>
     </footer>
+    </div>
+
+    <!-- Etapa 2: dados e forma de pagamento -->
+    <form class="sheet__step" data-step="checkout" id="checkout-form" novalidate hidden>
+      <div class="sheet__body pay">
+        <p class="pay__ship" id="pay-ship"></p>
+
+        <fieldset class="pay__group">
+          <legend class="pay__legend">Seus dados</legend>
+          <div class="field">
+            <label for="f-name">Nome completo</label>
+            <input id="f-name" name="name" type="text" autocomplete="name" autocapitalize="words" maxlength="80" required aria-describedby="e-name">
+            <p class="field__error" id="e-name">Digite nome e sobrenome.</p>
+          </div>
+          <div class="field">
+            <label for="f-email">E-mail</label>
+            <input id="f-email" name="email" type="email" autocomplete="email" inputmode="email" maxlength="120" required aria-describedby="h-email e-email">
+            <p class="field__hint" id="h-email">O comprovante do pagamento chega por aqui.</p>
+            <p class="field__error" id="e-email">Confira o e-mail.</p>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="f-phone">WhatsApp</label>
+              <input id="f-phone" name="phone" type="tel" autocomplete="tel-national" inputmode="tel" maxlength="16" placeholder="(00) 00000-0000" required aria-describedby="e-phone">
+              <p class="field__error" id="e-phone">Digite o DDD e o número.</p>
+            </div>
+            <div class="field">
+              <label for="f-cpf">CPF</label>
+              <input id="f-cpf" name="cpf" type="text" inputmode="numeric" autocomplete="off" maxlength="14" placeholder="000.000.000-00" required aria-describedby="e-cpf">
+              <p class="field__error" id="e-cpf">CPF inválido.</p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="pay__group">
+          <legend class="pay__legend">Endereço de entrega</legend>
+          <p class="pay__addr" id="pay-addr"></p>
+          <div class="field-row">
+            <div class="field field--sm">
+              <label for="f-number">Número</label>
+              <input id="f-number" name="number" type="text" autocomplete="address-line2" maxlength="20" required aria-describedby="e-number">
+              <p class="field__error" id="e-number">Obrigatório.</p>
+            </div>
+            <div class="field">
+              <label for="f-complement">Complemento <span class="field__opt">(opcional)</span></label>
+              <input id="f-complement" name="complement" type="text" autocomplete="address-line3" maxlength="60" placeholder="Apto, bloco, referência">
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="pay__group">
+          <legend class="pay__legend">Forma de pagamento</legend>
+          <div class="methods">
+            <label class="method">
+              <input type="radio" name="method" value="pix" checked>
+              <span class="method__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 2.5 21.5 12 12 21.5 2.5 12z"/><path d="m8.5 12 3.5-3.5 3.5 3.5-3.5 3.5z"/></svg></span>
+              <span class="method__main"><span class="method__name">Pix</span><span class="method__hint js-pix-hint">Aprovação na hora</span></span>
+              <span class="method__price" id="price-pix"></span>
+            </label>
+            <label class="method">
+              <input type="radio" name="method" value="card">
+              <span class="method__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="M2.5 10h19M6 15h4"/></svg></span>
+              <span class="method__main"><span class="method__name">Cartão de crédito</span><span class="method__hint">Em até 12x</span></span>
+              <span class="method__price" id="price-card"></span>
+            </label>
+          </div>
+        </fieldset>
+
+        <label class="check" id="age-check">
+          <input type="checkbox" id="f-age" name="age" aria-describedby="e-age">
+          <span>Confirmo que tenho 18 anos ou mais.</span>
+        </label>
+        <p class="field__error field__error--check" id="e-age">Para comprar, confirme que tem 18 anos ou mais.</p>
+
+        <p class="form-alert" id="checkout-alert" role="alert" hidden></p>
+      </div>
+      <footer class="sheet__foot">
+        <button class="btn btn--primary btn--lg btn--block" type="submit" id="checkout-submit">Gerar Pix</button>
+        <p class="sheet__note">Pagamento seguro pelo Mercado Pago. Os dados do cartão não passam pela loja.</p>
+      </footer>
+    </form>
+
+    <!-- Etapa 3a: Pix -->
+    <div class="sheet__step" data-step="pix" hidden>
+      <div class="sheet__body pay pay--center">
+        <p class="pay__order">Pedido <b class="js-order-code"></b></p>
+        <p class="pay__amount js-order-total"></p>
+        <img class="pix__qr" id="pix-qr" alt="QR Code do Pix" width="216" height="216">
+        <p class="pix__how">No app do banco, escolha <b>Pix → Ler QR Code</b>, ou copie o código abaixo.</p>
+        <label class="visually-hidden" for="pix-code">Código Pix copia e cola</label>
+        <textarea class="pix__code" id="pix-code" rows="3" readonly></textarea>
+        <button class="btn btn--primary btn--lg btn--block" type="button" data-action="pix-copy" id="pix-copy">Copiar código Pix</button>
+        <p class="pix__status" id="pix-status" role="status" aria-live="polite"></p>
+      </div>
+      <footer class="sheet__foot">
+        <a class="btn btn--quiet btn--block js-order-wa" target="_blank" rel="noopener">Dúvidas sobre o pedido? Fale no WhatsApp</a>
+      </footer>
+    </div>
+
+    <!-- Etapa 3b: cartão (formulário seguro do Mercado Pago) -->
+    <div class="sheet__step" data-step="card" hidden>
+      <div class="sheet__body pay">
+        <p class="pay__order">Pedido <b class="js-order-code"></b> · <b class="js-order-total"></b></p>
+        <p class="form-alert" id="card-alert" role="alert" hidden></p>
+        <div id="card-brick" class="card-brick"><p class="pay__loading">Carregando o formulário seguro…</p></div>
+      </div>
+    </div>
+
+    <!-- Etapa 4: resultado -->
+    <div class="sheet__step" data-step="done" hidden>
+      <div class="sheet__body pay pay--center">
+        <div class="done__icon" id="done-icon" aria-hidden="true"></div>
+        <h3 class="done__title" id="done-title" tabindex="-1"></h3>
+        <p class="done__code">Pedido <b class="js-order-code"></b></p>
+        <p class="done__text" id="done-text"></p>
+        <dl class="totals done__totals" id="done-totals"></dl>
+      </div>
+      <footer class="sheet__foot">
+        <a class="btn btn--whats btn--lg btn--block js-order-wa" target="_blank" rel="noopener">
+          <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 3a13 13 0 0 0-11.2 19.6L3 29l6.6-1.7A13 13 0 1 0 16 3z"/></svg>
+          Falar sobre o pedido no WhatsApp
+        </a>
+        <button class="btn btn--quiet btn--block done__again" type="button" data-action="pay-finish" id="done-again">Continuar comprando</button>
+      </footer>
+    </div>
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -318,6 +453,6 @@
     </div>
   </dialog>
 
-  <script src="app.js?v=8"></script>
+  <script src="app.js?v=9"></script>
 </body>
 </html>
