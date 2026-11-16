@@ -6,7 +6,7 @@ Site estático para GitHub Pages:
 - **Estoque ao vivo:** a contagem vem do Supabase e atualiza na tela sem recarregar (Realtime).
 - **Carrinho:** respeita o estoque disponível e calcula o frete pelo CEP.
 - **Pagamento no site:** Pix e cartão em até 12x pelo **Mercado Pago**. Cada pedido tem um número único (ex.: `R15-1001`), e depois de pagar o cliente pode falar do pedido no WhatsApp com a mensagem já pronta. Sem o Mercado Pago configurado, o pedido segue pelo WhatsApp.
-- **Painel admin** (`admin.html`): login da equipe e botões **+ / −** para ajustar o estoque pelo celular.
+- **Painel admin** (`admin.html`): login da equipe, **pedidos para separar e enviar** (com código de rastreio e aviso ao cliente no WhatsApp) e botões **+ / −** para ajustar o estoque pelo celular.
 
 Sem o Supabase configurado, o site roda com produtos de demonstração.
 
@@ -16,8 +16,8 @@ Sem o Supabase configurado, o site roda com produtos de demonstração.
 |---|---|
 | `config.js` | **Único arquivo para personalizar:** nome da marca, WhatsApp, textos das promoções, data da contagem regressiva e chaves do Supabase |
 | `index.html` / `styles.css` / `app.js` | Vitrine |
-| `admin.html` | Painel de estoque |
-| `supabase/schema.sql` | Tabela `products` (com peso e medidas para o frete), segurança (RLS), função `adjust_stock`, Realtime e produtos de exemplo |
+| `admin.html` | Painel da equipe: pedidos e estoque |
+| `supabase/schema.sql` | Tabelas `products` (com peso e medidas para o frete) e `orders`, segurança (RLS), funções de estoque, Realtime e produtos de exemplo |
 | `supabase/functions/frete/index.ts` | Edge Function que calcula o frete (Correios, Melhor Envio, Uber Direct e Lalamove) |
 | `supabase/functions/pagamento/index.ts` | Edge Function que cria os pedidos, cobra no Pix ou no cartão e recebe os avisos do Mercado Pago |
 
@@ -131,17 +131,31 @@ Os preços e o frete são calculados na Edge Function, a partir do banco e da co
 6. **No `config.js`,** cole a Public Key em `mercadoPagoPublicKey`. A Public Key pode ficar no site.
 7. **Teste** com as credenciais de teste e os [cartões de teste](https://www.mercadopago.com.br/developers/pt/docs/checkout-api/integration-test/test-cards) do Mercado Pago. Depois troque **as duas** (Public Key e Access Token) pelas de produção. As duas precisam ser do mesmo modo, teste ou produção.
 
-### Acompanhar os pedidos
+### Separar e enviar (aba **Pedidos** do `admin.html`)
 
-Os pedidos ficam em **Table Editor → orders**. O campo `code` é o número que o cliente vê, e `id` é o identificador interno; os dois são únicos.
+Entre no `admin.html` com o usuário da equipe. A aba **Pedidos** abre direto na fila **A enviar** e atualiza sozinha quando chega um pagamento.
+
+1. **A enviar:** pedidos pagos que ainda não saíram. Entregas no mesmo dia (Uber, Lalamove) aparecem primeiro, com o selo **Mesmo dia**; o resto vem na ordem de pagamento, o mais antigo primeiro.
+2. **Separar:** marque cada item conforme pega na prateleira. As marcações ficam salvas naquele aparelho.
+3. **Imprimir** gera uma folha só com aquele pedido (itens e endereço) para ir junto na caixa. **Copiar endereço** serve para colar na etiqueta dos Correios ou no app de entrega.
+4. **Marcar como enviado:** se tiver, digite o código de rastreio antes. O pedido vai para **Enviados**, e aparece o botão **Avisar o cliente**, que abre o WhatsApp do cliente com o número do pedido e o rastreio. Errou? **Desfazer envio** devolve o pedido para a fila.
+5. **Revisar:** pedidos com algum problema no pagamento (veja a tabela abaixo). Resolva no Mercado Pago e, se estiver tudo certo, toque em **Resolvido, liberar para envio**: o pedido volta para **A enviar**. Se você estornar o pagamento, o pedido muda para estornado sozinho.
+
+O número vermelho na aba **Pedidos** soma os pedidos a enviar e a revisar. Pelo painel, a equipe só consegue mudar o envio, o rastreio e tirar um pedido da revisão. Valores, itens e dados do cliente só mudam pelas funções do site.
+
+> Já rodou o `schema.sql` antes? Rode de novo o arquivo inteiro: ele acrescenta os campos de envio (`shipped_at`, `tracking_code`, `reviewed_at`) e liga o Realtime dos pedidos, sem apagar nada.
+
+### Os pedidos no Supabase
+
+Os pedidos também ficam em **Table Editor → orders**. O campo `code` é o número que o cliente vê, e `id` é o identificador interno; os dois são únicos.
 
 | `status` | O que quer dizer |
 |---|---|
 | `pending` | Aguardando o pagamento |
-| `paid` | Pago. O estoque já foi baixado; é só separar e enviar |
+| `paid` | Pago. O estoque já foi baixado; é só separar e enviar. Depois de enviado, `shipped_at` e `tracking_code` ficam preenchidos |
 | `expired` / `cancelled` | O Pix venceu ou o pagamento foi cancelado. Nada foi cobrado |
 | `refunded` | Estornado ou contestado no cartão |
-| `needs_review` | **Precisa da sua atenção.** O motivo fica em `review_reason`: pagamento em dobro, valor menor que o total, estoque que acabou entre o pedido e o pagamento, ou pago depois de vencer. Resolva pelo painel do Mercado Pago (estorno) e fale com o cliente |
+| `needs_review` | **Precisa da sua atenção.** O motivo fica em `review_reason`: pagamento em dobro, valor menor que o total, estoque que acabou entre o pedido e o pagamento, ou pago depois de vencer. Resolva pelo painel do Mercado Pago (estorno) e fale com o cliente. Se o pedido puder seguir, libere pelo `admin.html` |
 
 Os dados dos clientes (nome, CPF, e-mail, telefone, endereço) só aparecem para quem está logado no Supabase. Cite essa coleta na política de privacidade da loja (LGPD).
 
