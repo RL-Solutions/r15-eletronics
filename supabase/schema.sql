@@ -157,6 +157,39 @@ create policy "Admin le pedidos" on public.orders for select to authenticated us
 drop policy if exists "Admin altera pedidos" on public.orders;
 create policy "Admin altera pedidos" on public.orders for update to authenticated using (true) with check (true);
 
+-- Envio e revisão (preenchidos pela equipe no admin.html)
+alter table public.orders add column if not exists shipped_at    timestamptz;
+alter table public.orders add column if not exists tracking_code text check (char_length(tracking_code) <= 40);
+alter table public.orders add column if not exists reviewed_at   timestamptz;
+
+-- A equipe só altera os campos de envio e revisão. Total, itens, cliente e
+-- dados do pagamento só mudam pelas funções (service role).
+revoke update on public.orders from anon, authenticated;
+grant  update (status, shipped_at, tracking_code, reviewed_at) on public.orders to authenticated;
+revoke insert, delete on public.orders from anon, authenticated;
+revoke all on public.shipping_quotes from anon, authenticated;
+
+-- Pela tela, a equipe só tira um pedido da revisão (volta a "pago")
+-- e só marca como enviado um pedido pago.
+create or replace function public.guard_order_status()
+returns trigger language plpgsql as $$
+begin
+  if coalesce(auth.role(), '') = 'authenticated' then
+    if new.status is distinct from old.status
+       and not (old.status = 'needs_review' and new.status = 'paid') then
+      raise exception 'A equipe só pode marcar um pedido em revisão como resolvido';
+    end if;
+    if new.shipped_at is not null and old.shipped_at is null and new.status <> 'paid' then
+      raise exception 'Só pedidos pagos podem ser marcados como enviados';
+    end if;
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists orders_guard_status on public.orders;
+create trigger orders_guard_status before update on public.orders
+for each row execute function public.guard_order_status();
+
 -- Baixa de estoque do pedido pago (uma vez só, mesmo se o aviso chegar repetido).
 -- Devolve false se faltou estoque de algum item: o pedido vai para revisão.
 create or replace function public.apply_order_stock(p_order uuid)
@@ -186,6 +219,17 @@ end $$;
 
 revoke execute on function public.apply_order_stock(uuid) from anon, authenticated, public;
 grant  execute on function public.apply_order_stock(uuid) to service_role;
+
+-- Pedidos novos aparecem na hora no admin.html (o RLS garante que só a equipe vê)
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'orders'
+  ) then
+    alter publication supabase_realtime add table public.orders;
+  end if;
+end $$;
 
 -- 7) Produtos de exemplo (apague ou edite à vontade) --------------------
 --    Só acessórios de tabacaria. Produtos de tabaco não podem ser vendidos
