@@ -89,14 +89,27 @@
             aria-label="${inCart >= s ? "Limite do estoque no carrinho" : "Adicionar ao carrinho"}: ${esc(p.name)}">
             ${inCart >= s ? "Limite atingido" : "Adicionar"}
           </button>`;
-    const flash = variant === "flash";
-    const bar = flash && !out
-      ? `<div class="stockbar" aria-hidden="true"><span style="width:${Math.max(8, Math.min(100, s * 10))}%"></span></div>`
-      : "";
-    const save = flash && off ? `<span class="save">Economize ${brl(Number(p.price) - fp)}</span>` : "";
+    if (variant === "flash") {
+      return `
+      <article class="card card--flash${out ? " is-out" : ""}" role="listitem" data-id="${esc(p.id)}" aria-label="${esc(p.name)}">
+        ${off ? `<span class="ribbon"><b>-${off}%</b> off</span>` : ""}
+        <div class="card__media">${media(p)}</div>
+        <div class="card__body">
+          <h3 class="card__name">${esc(p.name)}</h3>
+          ${p.variant ? `<span class="card__variant">${esc(p.variant)}</span>` : ""}
+          <div class="card__prices">
+            ${off ? `<div class="price-old"><span class="visually-hidden">De </span>${brl(p.price)}</div>` : ""}
+            <div class="price">${off ? '<span class="visually-hidden">Por </span>' : ""}${brl(fp)}</div>
+            ${off ? `<div class="save">Economize ${brl(Number(p.price) - fp)}</div>` : ""}
+          </div>
+          <span class="${st.cls}">${st.text}</span>
+          ${button}
+        </div>
+      </article>`;
+    }
 
     return `
-      <article class="card${flash ? " card--flash" : ""}${out ? " is-out" : ""}" role="listitem" data-id="${esc(p.id)}" aria-label="${esc(p.name)}">
+      <article class="card${out ? " is-out" : ""}" role="listitem" data-id="${esc(p.id)}" aria-label="${esc(p.name)}">
         <div class="card__media">${media(p)}<div class="card__tags">${tags}</div></div>
         <div class="card__body">
           ${p.brand ? `<span class="card__brand">${esc(p.brand)}</span>` : ""}
@@ -106,11 +119,9 @@
             ${off ? `<div class="price-old"><span class="visually-hidden">De </span>${brl(p.price)}</div>` : ""}
             <div class="price">${off ? '<span class="visually-hidden">Por </span>' : ""}${brl(fp)}</div>
             <div class="price-pix"><b>${brl(pixPrice(fp))}</b> no Pix</div>
-            ${save}
           </div>
           <span class="${st.cls}">${st.text}</span>
           ${ship}
-          ${bar}
           ${button}
         </div>
       </article>`;
@@ -406,8 +417,17 @@
     setupMarquee();
 
     $("#hero-title").innerHTML = (CFG.heroTitle || []).map((w) => `<span>${esc(w)}</span>`).join("");
-    $(".js-hero-deal").textContent = CFG.heroDeal || "";
+    const deal = CFG.heroDeal || {};
+    $(".js-deal-pre").textContent = deal.pre || "";
+    $(".js-deal-value").textContent = deal.value || "";
+    $(".js-deal-post").textContent = deal.post || "";
+    $(".ticket").hidden = !deal.value;
+    $(".js-hero-kicker").textContent = CFG.heroKicker || "";
+    $(".hero__kicker").hidden = !CFG.heroKicker;
     $(".js-hero-text").textContent = CFG.heroText || "";
+    $(".js-hero-strong").textContent = CFG.heroTextStrong || "";
+    $(".js-flash-kicker").textContent = CFG.flashKicker || "";
+    $(".js-flash-pill").hidden = !CFG.flashKicker;
     $(".js-pix-label").textContent = `${((CFG.pixDiscount || 0) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% off pagando no Pix`;
 
     const wa = `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(`Olá! Vim pelo site da ${brand}.`)}`;
