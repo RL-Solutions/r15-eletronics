@@ -211,7 +211,8 @@
           <div class="cart-item__img">${media(p)}</div>
           <div>
             <p class="cart-item__name">${esc(p.name)}</p>
-            <p class="cart-item__meta">${esc(p.variant || "")}${p.variant ? " · " : ""}${brl(fp)} cada</p>
+            ${p.variant ? `<p class="cart-item__meta">${esc(p.variant)}</p>` : ""}
+            <p class="cart-item__meta">${brl(fp)} cada</p>
             ${qty >= max ? `<p class="cart-item__warn">Máximo disponível: ${max}</p>` : ""}
             <div class="cart-item__row">
               <div class="stepper" role="group" aria-label="Quantidade de ${esc(p.name)}">
@@ -265,7 +266,7 @@
     const lines = entries.map(({ p, qty }) => {
       const v = finalPrice(p) * qty;
       subtotal += v;
-      return `• ${qty}x ${p.name}${p.variant ? ` (${p.variant})` : ""} — ${brl(v)}`;
+      return `• ${qty}x ${p.name}${p.variant ? ` (${p.variant})` : ""}: ${brl(v)}`;
     });
     const msg = [
       `Olá! Quero fazer este pedido na ${CFG.brandName || "loja"}:`, "",
@@ -357,14 +358,12 @@
     $("#topbar").textContent = CFG.topBarText || "";
     $("#topbar").hidden = !CFG.topBarText;
 
-    const words = (CFG.marquee || []).map((w) => `<span>${esc(w)}</span>`).join("");
-    $("#marquee").innerHTML = words + words + words + words; // duplicado p/ loop contínuo
+    setupMarquee();
 
-    $(".js-hero-kicker").textContent = CFG.heroKicker || "";
     $("#hero-title").innerHTML = (CFG.heroTitle || []).map((w) => `<span>${esc(w)}</span>`).join("");
     $(".js-hero-deal").textContent = CFG.heroDeal || "";
     $(".js-hero-text").textContent = CFG.heroText || "";
-    $(".js-pix-label").textContent = `${Math.round((CFG.pixDiscount || 0) * 1000) / 10}% OFF pagando no Pix`;
+    $(".js-pix-label").textContent = `${((CFG.pixDiscount || 0) * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% off pagando no Pix`;
 
     const wa = `https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(`Olá! Vim pelo site da ${brand}.`)}`;
     $("#wa-float").href = wa;
@@ -377,6 +376,32 @@
     $("#footer-links").innerHTML = links.map(([h, t]) =>
       `<li><a href="${esc(h)}"${h.startsWith("http") ? ' target="_blank" rel="noopener"' : ""}>${esc(t)}</a></li>`).join("");
     $("#year").textContent = new Date().getFullYear();
+  }
+
+  // Faixa de avisos: pausa pelo botão, e para sozinha fora da tela
+  function setupMarquee() {
+    const box = $("#marquee-box");
+    const items = CFG.marquee || [];
+    if (!items.length) { box.hidden = true; return; }
+    const words = items.map((w) => `<span>${esc(w)}</span>`).join("");
+    $("#marquee").innerHTML = words + words + words + words; // repetido p/ loop contínuo
+    $("#marquee-text").textContent = items.join(". ") + ".";
+
+    const btn = $("#marquee-toggle");
+    const PAUSE = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="3" y="2" width="3.5" height="12" rx="1"/><rect x="9.5" y="2" width="3.5" height="12" rx="1"/></svg>';
+    const PLAY = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2.5v11a1 1 0 0 0 1.5.86l9-5.5a1 1 0 0 0 0-1.72l-9-5.5A1 1 0 0 0 4 2.5z"/></svg>';
+    let userPaused = false, offscreen = false;
+    const sync = () => {
+      box.classList.toggle("is-paused", userPaused || offscreen);
+      btn.setAttribute("aria-pressed", String(userPaused));
+      btn.setAttribute("aria-label", userPaused ? "Retomar faixa de avisos" : "Pausar faixa de avisos");
+      btn.innerHTML = userPaused ? PLAY : PAUSE;
+    };
+    btn.addEventListener("click", () => { userPaused = !userPaused; sync(); });
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(([e]) => { offscreen = !e.isIntersecting; sync(); }).observe(box);
+    }
+    sync();
   }
 
   function startCountdown() {
