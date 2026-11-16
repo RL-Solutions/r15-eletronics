@@ -3,9 +3,9 @@
 // =====================================================================
 window.STORE_CONFIG = {
   // Marca ---------------------------------------------------------------
-  brandName: "KVOLT",                 // nome provisório — troque pelo nome da marca
+  brandName: "R15 Eletronics",
   brandTagline: "Eletrônicos e acessórios",
-  brandInitial: "K",                  // letra do ícone do logo
+  brandInitial: "R15",                // texto do ícone do logo (até 3 caracteres)
 
   // Contato -------------------------------------------------------------
   // WhatsApp no formato internacional, só números (55 + DDD + número)
