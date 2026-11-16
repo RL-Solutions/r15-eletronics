@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0c0d10">
-  <meta name="description" content="Eletrônicos e acessórios com envio no mesmo dia e desconto no Pix.">
+  <meta name="description" content="Tabacaria e acessórios: sedas, piteiras, isqueiros, bags e cases, com envio no mesmo dia e desconto no Pix. Venda só para maiores de 18 anos.">
   <title>Loja</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -125,7 +125,7 @@
         <div class="search">
           <label class="visually-hidden" for="search-input">Buscar produtos</label>
           <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input id="search-input" type="search" placeholder="Buscar fone, carregador, cabo…" autocomplete="off" enterkeyhint="search">
+          <input id="search-input" type="search" placeholder="Buscar seda, isqueiro, bag…" autocomplete="off" enterkeyhint="search">
         </div>
 
         <div class="chips" id="chips" role="group" aria-label="Filtrar por categoria"></div>
@@ -143,6 +143,7 @@
         <p class="footer__muted js-tagline"></p>
       </div>
       <ul class="footer__links" id="footer-links"></ul>
+      <p class="footer__age"><b>18+</b> Venda proibida para menores de 18 anos.</p>
       <p class="footer__muted">© <span id="year"></span> <span class="js-brand"></span>. Todos os direitos reservados.</p>
     </div>
   </footer>
@@ -187,6 +188,21 @@
   </dialog>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <!-- Aviso de idade -->
+  <dialog class="age" id="age-gate" aria-labelledby="age-title" aria-describedby="age-desc">
+    <div id="age-ask">
+      <p class="age__badge" aria-hidden="true">18+</p>
+      <h2 id="age-title">Você tem 18 anos ou mais?</h2>
+      <p id="age-desc" class="age__text">A <span class="js-age-brand"></span> vende artigos de tabacaria. A entrada é permitida só para maiores de 18 anos.</p>
+      <button class="btn btn--primary btn--lg btn--block" type="button" id="age-yes" autofocus>Sim, tenho 18 anos ou mais</button>
+      <button class="btn btn--secondary btn--block" type="button" id="age-no">Tenho menos de 18 anos</button>
+    </div>
+    <div id="age-denied" class="age__denied" tabindex="-1" hidden>
+      <h2>Acesso não permitido</h2>
+      <p class="age__text">Este site é só para maiores de 18 anos.</p>
+    </div>
+  </dialog>
 
   <script src="app.js"></script>
 </body>
