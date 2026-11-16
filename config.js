@@ -39,6 +39,12 @@ window.STORE_CONFIG = {
   // Deixe vazio para rodar com os produtos de demonstração abaixo.
   supabaseUrl: "",
   supabaseAnonKey: "",
+
+  // Frete ---------------------------------------------------------------
+  // Calculado pela Edge Function "frete" (supabase/functions/frete).
+  // Aparece no carrinho só quando o Supabase acima estiver preenchido.
+  freight: true,
+  freightFunction: "frete",
 };
 
 // Produtos de demonstração (usados só enquanto o Supabase não está configurado)
