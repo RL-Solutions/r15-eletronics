@@ -45,6 +45,14 @@ window.STORE_CONFIG = {
   // Aparece no carrinho só quando o Supabase acima estiver preenchido.
   freight: true,
   freightFunction: "frete",
+
+  // Pagamento no site (Mercado Pago) -------------------------------------
+  // Cole a Public Key (Mercado Pago > Suas integrações > Credenciais).
+  // A Public Key pode ficar no site. O Access Token NUNCA: ele vai nos
+  // Secrets do Supabase. Vazio = o pedido segue pelo WhatsApp.
+  mercadoPagoPublicKey: "",
+  paymentFunction: "pagamento",
+  maxInstallments: 12,
 };
 
 // Produtos de demonstração (usados só enquanto o Supabase não está configurado)
