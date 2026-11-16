@@ -7,6 +7,7 @@
   const CFG = window.STORE_CONFIG || {};
   const SUPABASE_SDK = "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js";
   const CART_KEY = "loja.cart.v2";
+  const CEP_KEY = "loja.cep.v1";
 
   const $ = (s, el = document) => el.querySelector(s);
   const $$ = (s, el = document) => [...el.querySelectorAll(s)];
@@ -18,6 +19,8 @@
     cart: loadCart(),
     live: false,
     status: "ready",   // "loading" | "ready" | "error"
+    // frete: "idle" | "loading" | "ready" | "error"
+    ship: { status: "idle", cep: "", address: null, options: [], selected: null, sig: "", msg: "" },
   };
 
   // ---------------------------------------------------------------- utils
@@ -263,8 +266,112 @@
         </li>`;
     }).join("");
 
+    renderShip(entries);
+    const ship = selectedShip();
     $("#cart-subtotal").textContent = brl(subtotal);
-    $("#cart-pix").textContent = brl(pixPrice(subtotal));
+    $("#cart-ship-row").hidden = !ship;
+    if (ship) $("#cart-ship").textContent = brl(ship.price);
+    $("#cart-pix-label").textContent = ship ? "Total no Pix" : "No Pix";
+    $("#cart-pix").textContent = brl(pixPrice(subtotal) + (ship ? ship.price : 0));
+  }
+
+  // ---------------------------------------------------------------- frete
+  const freightOn = () => CFG.freight !== false && !!(CFG.supabaseUrl && CFG.supabaseAnonKey);
+  const fmtCep = (d) => (d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5, 8)}` : d);
+  const cartSig = (entries) => entries.map(({ p, qty }) => `${p.id}:${qty}`).sort().join(",");
+  const selectedShip = () => (state.ship.status === "ready" && state.ship.options.find((o) => o.id === state.ship.selected)) || null;
+
+  function etaText(o) {
+    if (o.minutes) return `Hoje, em cerca de ${o.minutes} min`;
+    if (o.sameDay) return "Entrega hoje";
+    if (o.days) return o.days === 1 ? "Até 1 dia útil" : `Até ${o.days} dias úteis`;
+    return "Prazo a confirmar";
+  }
+  const shipName = (o) => [o.carrier, o.service].filter(Boolean).join(" ");
+
+  function renderShip(entries) {
+    const box = $("#ship");
+    const s = state.ship;
+    box.hidden = !freightOn() || entries.length === 0;
+    if (box.hidden) return;
+
+    // Carrinho mudou depois da cotação: o valor não vale mais
+    if (s.status === "ready" && s.sig !== cartSig(entries)) {
+      Object.assign(s, { status: "idle", options: [], selected: null, msg: "Os itens mudaram. Calcule o frete de novo." });
+    }
+
+    const a = s.address;
+    $("#ship-addr").hidden = !(a && s.status === "ready");
+    if (a) $("#ship-addr").textContent = [a.street, a.district, a.city && `${a.city}/${a.uf}`].filter(Boolean).join(", ");
+    $("#ship-msg").textContent = s.status === "loading" ? "Calculando…" : s.msg;
+    $("#ship-msg").classList.toggle("is-error", s.status === "error");
+    $("#ship-btn").disabled = s.status === "loading";
+    $("#ship-form").setAttribute("aria-busy", String(s.status === "loading"));
+
+    const show = s.status === "ready" && s.options.length > 0;
+    $("#ship-opts").hidden = !show;
+    if (!show) { $("#ship-list").innerHTML = ""; return; }
+    const html = s.options.map((o) => `
+      <label class="ship-opt${o.sameDay ? " ship-opt--fast" : ""}">
+        <input type="radio" name="ship" value="${esc(o.id)}" ${o.id === s.selected ? "checked" : ""}>
+        <span class="ship-opt__main">
+          <span class="ship-opt__name">${esc(shipName(o))}</span>
+          <span class="ship-opt__eta">${esc(etaText(o))}</span>
+        </span>
+        <span class="ship-opt__price">${brl(o.price)}</span>
+      </label>`).join("");
+    // só reescreve se mudou, para não perder o foco do teclado
+    if ($("#ship-list").dataset.html !== html) {
+      $("#ship-list").innerHTML = html;
+      $("#ship-list").dataset.html = html;
+    }
+  }
+
+  let quoteSeq = 0;
+  async function quoteShipping() {
+    const s = state.ship;
+    const cep = $("#ship-cep").value.replace(/\D/g, "");
+    const entries = Object.entries(state.cart).map(([id, qty]) => ({ p: byId(id), qty })).filter((e) => e.p);
+    if (cep.length !== 8) {
+      Object.assign(s, { status: "error", options: [], selected: null, msg: "Digite o CEP com 8 números." });
+      renderCart();
+      $("#ship-cep").focus();
+      return;
+    }
+    if (!entries.length) return;
+
+    const seq = ++quoteSeq;
+    Object.assign(s, { status: "loading", cep, msg: "" });
+    renderCart();
+
+    let res, data;
+    try {
+      res = await fetch(`${CFG.supabaseUrl.replace(/\/+$/, "")}/functions/v1/${CFG.freightFunction || "frete"}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: CFG.supabaseAnonKey, Authorization: `Bearer ${CFG.supabaseAnonKey}` },
+        body: JSON.stringify({ cep, items: entries.map(({ p, qty }) => ({ id: p.id, qty })) }),
+      });
+      data = await res.json().catch(() => ({}));
+    } catch (err) {
+      console.error("Frete:", err);
+    }
+    if (seq !== quoteSeq) return; // chegou uma resposta mais nova
+
+    if (res && res.ok && Array.isArray(data.options)) {
+      const options = data.options;
+      try { localStorage.setItem(CEP_KEY, cep); } catch { /* modo privado */ }
+      Object.assign(s, {
+        status: "ready", address: data.address || null, options, sig: cartSig(entries),
+        selected: options.length ? options[0].id : null, // começa pela mais barata
+        msg: options.length ? "" : "Não há entrega para esse CEP pelo site. Combine o frete no WhatsApp.",
+      });
+    } else {
+      const msg = res && res.status === 404 ? "Não encontramos esse CEP. Confira os números."
+        : res && res.status === 400 ? "Confira o CEP e tente de novo."
+        : "Não deu para calcular agora. Tente de novo ou combine o frete no WhatsApp.";
+      Object.assign(s, { status: "error", options: [], selected: null, address: null, msg });
+    }
+    renderCart();
   }
 
   function addToCart(id) {
@@ -305,13 +412,26 @@
       subtotal += v;
       return `• ${qty}x ${p.name}${p.variant ? ` (${p.variant})` : ""}: ${brl(v)}`;
     });
+    const ship = selectedShip();
+    const a = state.ship.address;
+    const shipLines = ship ? [
+      `Entrega: ${shipName(ship)}, ${brl(ship.price)} (${etaText(ship).toLowerCase()})`,
+      `CEP: ${fmtCep(state.ship.cep)}${a ? ` (${[a.street, a.district, a.city && `${a.city}/${a.uf}`].filter(Boolean).join(", ")})` : ""}`,
+      "Número e complemento: ",
+      "",
+      `Total: ${brl(subtotal + ship.price)}`,
+      `Total no Pix: ${brl(pixPrice(subtotal) + ship.price)}`,
+    ] : [
+      `Subtotal: ${brl(subtotal)}`,
+      `No Pix: ${brl(pixPrice(subtotal))}`,
+    ];
     const msg = [
       `Olá! Quero fazer este pedido na ${CFG.brandName || "loja"}:`, "",
       ...lines, "",
-      `Subtotal: ${brl(subtotal)}`,
-      `No Pix: ${brl(pixPrice(subtotal))}`, "",
+      ...(ship ? [`Subtotal: ${brl(subtotal)}`] : []),
+      ...shipLines, "",
       ...(CFG.ageGate ? ["Confirmo que tenho 18 anos ou mais.", ""] : []),
-      "Pode confirmar a disponibilidade e o frete?",
+      ship ? "Pode confirmar a disponibilidade?" : "Pode confirmar a disponibilidade e o frete?",
     ].join("\n");
     window.open(`https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
   }
@@ -521,6 +641,19 @@
     $("#search-input").addEventListener("input", (e) => {
       clearTimeout(debounce);
       debounce = setTimeout(() => { state.query = e.target.value; render(); }, 150);
+    });
+
+    // frete: máscara 00000-000, calcular e escolher a opção
+    const cepInput = $("#ship-cep");
+    try { cepInput.value = fmtCep(localStorage.getItem(CEP_KEY) || ""); } catch { /* modo privado */ }
+    cepInput.addEventListener("input", () => {
+      cepInput.value = fmtCep(cepInput.value.replace(/\D/g, "").slice(0, 8));
+    });
+    $("#ship-form").addEventListener("submit", (e) => { e.preventDefault(); quoteShipping(); });
+    $("#ship-list").addEventListener("change", (e) => {
+      if (e.target.name !== "ship") return;
+      state.ship.selected = e.target.value;
+      renderCart();
     });
 
     // carrinho sincronizado entre abas
