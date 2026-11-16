@@ -17,6 +17,7 @@
     query: "",
     cart: loadCart(),
     live: false,
+    status: "ready",   // "loading" | "ready" | "error"
   };
 
   // ---------------------------------------------------------------- utils
@@ -76,10 +77,18 @@
     const st = stockInfo(p);
     const inCart = state.cart[p.id] || 0;
     const canAdd = !out && inCart < s;
-    const tags = [
-      off ? `<span class="tag tag--off">-${off}% off</span>` : "",
-      out ? '<span class="tag tag--out">Esgotado</span>' : (p.ships_today ? '<span class="tag tag--ship">Envio hoje</span>' : ""),
-    ].join("");
+    const tags = out
+      ? '<span class="tag tag--out">Esgotado</span>'
+      : (off ? `<span class="tag tag--off">-${off}% off</span>` : "");
+    const ship = !out && p.ships_today
+      ? '<span class="card__ship"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg>Envio hoje</span>'
+      : "";
+    const button = out
+      ? `<button class="btn btn--quiet card__btn" type="button" data-notify="${esc(p.id)}" aria-label="Avisar quando chegar: ${esc(p.name)}">Avisar quando chegar</button>`
+      : `<button class="btn btn--outline card__btn" type="button" data-add="${esc(p.id)}" ${canAdd ? "" : "disabled"}
+            aria-label="${inCart >= s ? "Limite do estoque no carrinho" : "Adicionar ao carrinho"}: ${esc(p.name)}">
+            ${inCart >= s ? "Limite atingido" : "Adicionar"}
+          </button>`;
     const flash = variant === "flash";
     const bar = flash && !out
       ? `<div class="stockbar" aria-hidden="true"><span style="width:${Math.max(8, Math.min(100, s * 10))}%"></span></div>`
@@ -100,11 +109,9 @@
             ${save}
           </div>
           <span class="${st.cls}">${st.text}</span>
+          ${ship}
           ${bar}
-          <button class="btn btn--primary card__btn" type="button" data-add="${esc(p.id)}" ${canAdd ? "" : "disabled"}
-            aria-label="${out ? "Esgotado" : inCart >= s ? "Limite do estoque no carrinho" : "Adicionar ao carrinho"}: ${esc(p.name)}">
-            ${out ? "Esgotado" : inCart >= s ? "Limite atingido" : "Adicionar"}
-          </button>
+          ${button}
         </div>
       </article>`;
   }
@@ -131,7 +138,7 @@
   function captureFocus() {
     const a = document.activeElement;
     if (!a || !a.dataset) return null;
-    const key = ["add", "cat", "inc", "dec"].find((k) => a.dataset[k] != null);
+    const key = ["add", "notify", "cat", "inc", "dec"].find((k) => a.dataset[k] != null);
     if (!key) return null;
     const list = a.closest("[data-list]");
     return { list: list && list.dataset.list, key, val: a.dataset[key] };
@@ -143,7 +150,25 @@
     if (el && !el.disabled) el.focus({ preventScroll: true });
   }
 
+  const skeleton = (n) => Array.from({ length: n }, () =>
+    '<div class="card card--skeleton" role="listitem" aria-hidden="true"><div class="card__media"></div><div class="card__body"><span class="sk sk--sm"></span><span class="sk"></span><span class="sk sk--md"></span><span class="sk sk--btn"></span></div></div>').join("");
+
+  function paintPending() {
+    const loading = state.status === "loading";
+    for (const key of ["featured", "clearance", "ships", "all"]) {
+      const el = $(`[data-list="${key}"]`);
+      el.innerHTML = loading && key !== "clearance" ? skeleton(4) : "";
+      if (key !== "all") el.closest("section").hidden = !loading || key === "clearance";
+    }
+    $("#empty").hidden = true;
+    $("#load-error").hidden = loading;
+    $("#catalogo").setAttribute("aria-busy", String(loading));
+  }
+
   function paint(changedIds) {
+    if (state.status !== "ready") return paintPending();
+    $("#load-error").hidden = true;
+    $("#catalogo").setAttribute("aria-busy", "false");
     const P = state.products;
     const lists = {
       featured: sortForSale(P.filter((p) => p.featured)),
@@ -321,33 +346,51 @@
     if (changed.length) toast(`Estoque atualizado: ${changed.map((p) => p.name).join(", ")}`);
   }
 
+  let channelStarted = false;
+
   async function init() {
-    if (CFG.supabaseUrl && CFG.supabaseAnonKey) {
-      try {
-        setStatus("Conectando ao estoque…");
-        await loadScript(SUPABASE_SDK);
-        sb = window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
-        await loadProducts();
-        state.live = true;
-        clampCart();
-        render();
-        setStatus("Estoque atualizado em tempo real", true);
+    if (!(CFG.supabaseUrl && CFG.supabaseAnonKey)) {
+      // Sem Supabase: catálogo de demonstração (aviso só no console, não para o cliente)
+      console.info("Loja em modo demonstração. Preencha supabaseUrl e supabaseAnonKey em config.js.");
+      state.products = (window.DEMO_PRODUCTS || []).map((p, i) => ({ sort_order: i, ...p }));
+      clampCart();
+      render();
+      return;
+    }
+
+    state.status = "loading";
+    setStatus("");
+    render();
+    try {
+      if (!window.supabase) await loadScript(SUPABASE_SDK);
+      sb = sb || window.supabase.createClient(CFG.supabaseUrl, CFG.supabaseAnonKey);
+      await loadProducts();
+      state.live = true;
+      state.status = "ready";
+      clampCart();
+      render();
+      setStatus("Estoque atualizado em tempo real", true);
+      if (!channelStarted) {
+        channelStarted = true;
         sb.channel("products-stock")
           .on("postgres_changes", { event: "*", schema: "public", table: "products" }, onRealtime)
           .subscribe((status) => {
-            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setStatus("Estoque carregado (sem atualização ao vivo)", false);
+            if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setStatus("Estoque carregado. Recarregue a página para ver mudanças.", false);
           });
-        return;
-      } catch (err) {
-        console.error("Supabase:", err);
-        setStatus("Não foi possível carregar o estoque ao vivo. Mostrando catálogo de demonstração.");
       }
-    } else {
-      setStatus("Modo demonstração. Conecte o Supabase em config.js para mostrar o estoque real.");
+    } catch (err) {
+      // Nunca mostrar produtos de demonstração como se fossem reais
+      console.error("Supabase:", err);
+      state.status = "error";
+      render();
     }
-    state.products = (window.DEMO_PRODUCTS || []).map((p, i) => ({ sort_order: i, ...p }));
-    clampCart();
-    render();
+  }
+
+  function notifyRestock(id) {
+    const p = byId(id);
+    if (!p) return;
+    const msg = `Olá! Quero ser avisado quando o produto ${p.name}${p.variant ? ` (${p.variant})` : ""} voltar ao estoque.`;
+    window.open(`https://wa.me/${CFG.whatsapp}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
   }
 
   // ---------------------------------------------------------------- UI fixa
@@ -436,6 +479,8 @@
       if (!t) return;
       const d = t.dataset;
       if (d.add) addToCart(d.add);
+      else if (d.notify) notifyRestock(d.notify);
+      else if (d.action === "retry") init();
       else if (d.inc) setQty(d.inc, (state.cart[d.inc] || 0) + 1);
       else if (d.dec) setQty(d.dec, (state.cart[d.dec] || 0) - 1);
       else if (d.remove) setQty(d.remove, 0);
@@ -468,6 +513,7 @@
     const gate = $("#age-gate");
     let ok = false;
     try { ok = localStorage.getItem(AGE_KEY) === "1"; } catch { /* modo privado */ }
+    if (!gate) return;
     if (!CFG.ageGate || ok) { gate.remove(); return; }
 
     $(".js-age-brand", gate).textContent = CFG.brandName || "Esta loja";
